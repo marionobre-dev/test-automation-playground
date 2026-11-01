@@ -48,6 +48,7 @@ export default defineConfig({
       <span><span class="tag easy">Beginner</span> first steps, one concept at a time</span>
       <span><span class="tag medium">Intermediate</span> waits, data and multi-step flows</span>
       <span><span class="tag hard">Advanced</span> browser-level tricks</span>
+      <span><span class="tag nightmare">Nightmare</span> no ids, no help</span>
       <span><span class="tag kind">UI</span> <span class="tag kind">E2E</span> <span class="tag kind">API</span> type of testing</span>
     </div>
 
@@ -253,6 +254,35 @@ export default defineConfig({
           </div>
         </div>
         <p style="margin: 14px 0 0"><a class="btn" href="api.html" data-testid="start-api">Start practising →</a></p>
+      </article>
+
+      <article class="card" data-testid="card-nightmare">
+        <div class="area-head">
+          <h2>Nightmare mode</h2>
+          <span class="tags"><span class="tag nightmare">Nightmare</span><span class="tag kind">UI</span></span>
+        </div>
+        <p>Ten levels built to be as hostile to automation as possible, and no solutions. Once you've finished everything else, see how far your tests get.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you're up against</h3>
+            <ul>
+              <li>No ids or test ids, and class names that change on every load</li>
+              <li>Text that isn't in the DOM, look-alike letters and hidden characters</li>
+              <li>Buttons that hide under glass, run away or ignore you</li>
+              <li>A cookie wall, a returning popup, a chat bubble and a surprise alert</li>
+            </ul>
+          </div>
+          <div>
+            <h3>The rules</h3>
+            <ol>
+              <li>Levels unlock one at a time</li>
+              <li>Every level can be solved by automation</li>
+              <li>No "Show me how": you're on your own</li>
+              <li>Beat all ten for your escape time</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="nightmare.html" data-testid="start-nightmare">Enter if you dare →</a></p>
       </article>
     </div>
   </main>

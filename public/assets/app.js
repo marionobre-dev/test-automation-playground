@@ -9,10 +9,11 @@
     ['interactions.html', 'Interactions'],
     ['shop.html', 'Shop'],
     ['api.html', 'API'],
+    ['nightmare.html', 'Nightmare'],
   ];
   const current = location.pathname.split('/').pop() || 'index.html';
 
-  const header = document.getElementById('site-header');
+  const header = document.getElementById('site-header') || document.querySelector('[data-site-header]');
   if (header) {
     header.className = 'site-header';
     header.innerHTML =
@@ -39,10 +40,16 @@
     sync();
   }
 
-  const footer = document.getElementById('site-footer');
+  const footer = document.getElementById('site-footer') || document.querySelector('[data-site-footer]');
   if (footer) {
     footer.className = 'site-footer';
     footer.textContent = 'Built for practising UI and API test automation. Data resets regularly.';
+  }
+
+  // Nightmare mode promises no ids or test ids anywhere, including the shared header.
+  if (document.body.hasAttribute('data-nightmare')) {
+    const hooks = ['id', 'data-testid', 'data-site-header', 'data-site-footer', 'data-nightmare'];
+    [document.body, ...document.body.querySelectorAll('*')].forEach((node) => hooks.forEach((a) => node.removeAttribute(a)));
   }
 })();
 

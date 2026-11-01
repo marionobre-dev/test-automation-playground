@@ -180,6 +180,7 @@ dialog::backdrop { background: rgb(0 0 0 / 0.45); }
 .tag.medium { background: var(--warn-bg); color: var(--warn); }
 .tag.hard { background: var(--err-bg); color: var(--err); }
 .tag.kind { background: var(--surface-2); color: var(--muted); }
+.tag.nightmare { background: #1d0f2b; color: #e2c8ff; }
 .tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 
 /* Home page */

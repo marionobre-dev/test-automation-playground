@@ -69,6 +69,10 @@ A small end-to-end flow: search, filter by category, sort by price, add to cart 
 
 **Try:** a complete purchase that asserts the subtotal, discount, shipping and order total; an invalid promo code; checkout validation.
 
+### Nightmare mode (`nightmare.html`)
+
+Ten levels designed to be as hard to automate as possible, with **no solutions**. The page has no `id` or `data-testid` attributes (even the shared header loses them), class names are random on every load, and the levels sit in a shuffled order in the DOM while CSS shows them in sequence. Expect text drawn by CSS and canvas, look-alike Unicode letters, zero-width characters, buttons covered by glass or running from the mouse, a closed shadow root, a list that re-renders every 700 ms, a button that ignores early clicks, nested frames, a timed key sequence and a home-made slider. A cookie wall, a recurring newsletter popup, a chat bubble and a one-off `alert()` interrupt at random times. Every level is solvable by automation. Nothing is stored or tracked.
+
 ### Light and dark mode
 
 Pages follow the visitor's system setting until the header toggle (`[data-testid="theme-toggle"]`) is clicked. The choice is stored in `localStorage` under `theme` and shown as `<html data-theme="light|dark">`, which is useful for visual regression or theme-switching tests.
@@ -120,6 +124,7 @@ public/                 the website (deployed as-is)
   *.html                one page per practice area
   assets/style.css      shared styles and light/dark colour tokens
   assets/theme.js       applies the saved theme before the page draws
+  assets/nightmare.js   builds the nightmare page and its levels at runtime
   assets/app.js         shared header, footer, helpers and "Show me how" code rendering
   assets/favicon.svg    site icon
   api/index.php         REST API router (PHP 7.4+)
