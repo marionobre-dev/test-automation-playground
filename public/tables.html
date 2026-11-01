@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tables Practice</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">Employees table</h1>
+    <p class="lead">47 fixed rows (the same every load). Sort by clicking headers, filter, paginate, edit a salary inline or delete rows. Use <em>Reset data</em> to restore.</p>
+
+    <div class="row" style="margin-bottom: 12px">
+      <input type="search" id="filter" placeholder="Filter by any column…" style="max-width: 280px" data-testid="filter">
+      <select id="dept-filter" style="max-width: 180px" data-testid="dept-filter">
+        <option value="">All departments</option>
+      </select>
+      <label for="page-size" style="margin: 0">Rows per page</label>
+      <select id="page-size" style="width: auto" data-testid="page-size">
+        <option>5</option><option selected>10</option><option>25</option><option>50</option>
+      </select>
+      <button id="reset-data" class="secondary small" data-testid="reset-data">Reset data</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="employees" data-testid="employees-table">
+        <thead>
+          <tr>
+            <th data-key="id" aria-sort="none"><button class="sort" data-testid="sort-id">ID</button></th>
+            <th data-key="name" aria-sort="none"><button class="sort" data-testid="sort-name">Name</button></th>
+            <th data-key="department" aria-sort="none"><button class="sort" data-testid="sort-department">Department</button></th>
+            <th data-key="role" aria-sort="none"><button class="sort" data-testid="sort-role">Role</button></th>
+            <th data-key="salary" aria-sort="none"><button class="sort" data-testid="sort-salary">Salary (€)</button></th>
+            <th data-key="startDate" aria-sort="none"><button class="sort" data-testid="sort-start-date">Start date</button></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="employees-body"></tbody>
+        <tfoot>
+          <tr><th colspan="4">Total salary (filtered)</th><th id="salary-total" data-testid="salary-total"></th><th colspan="2"></th></tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="pager">
+      <button id="prev" class="secondary small" data-testid="prev-page">Previous</button>
+      <span id="page-info" data-testid="page-info"></span>
+      <button id="next" class="secondary small" data-testid="next-page">Next</button>
+      <span class="hint" id="row-count" data-testid="row-count"></span>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    // Deterministic pseudo-random data so assertions stay stable across loads.
+    function seedData() {
+      let s = 42;
+      const rand = () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
+      const first = ['Ana', 'Bruno', 'Carla', 'Diogo', 'Elena', 'Filipe', 'Grace', 'Hugo', 'Inês', 'João', 'Kim', 'Luís', 'Marta', 'Nuno', 'Olga', 'Pedro', 'Rita', 'Sofia', 'Tiago', 'Vera'];
+      const last = ['Silva', 'Santos', 'Ferreira', 'Pereira', 'Costa', 'Oliveira', 'Martins', 'Smith', 'Müller', 'Garcia', 'Rossi', 'Novak'];
+      const depts = { Engineering: ['QA Engineer', 'Developer', 'SDET', 'Tech Lead'], Sales: ['Account Manager', 'Sales Rep'], Finance: ['Analyst', 'Controller'], HR: ['Recruiter', 'HR Partner'], Support: ['Agent', 'Team Lead'] };
+      const names = Object.keys(depts);
+      return Array.from({ length: 47 }, (_, i) => {
+        const department = names[Math.floor(rand() * names.length)];
+        const roles = depts[department];
+        const d = new Date(2015, 0, 1 + Math.floor(rand() * 3650));
+        return {
+          id: i + 1,
+          name: `${first[Math.floor(rand() * first.length)]} ${last[Math.floor(rand() * last.length)]}`,
+          department,
+          role: roles[Math.floor(rand() * roles.length)],
+          salary: 25000 + Math.round(rand() * 75) * 1000,
+          startDate: d.toISOString().slice(0, 10),
+        };
+      });
+    }
+
+    let rows = seedData();
+    const state = { sortKey: 'id', sortDir: 'ascending', page: 1, size: 10, text: '', dept: '' };
+    const fmt = new Intl.NumberFormat('en-GB');
+
+    [...new Set(rows.map((r) => r.department))].sort().forEach((d) => {
+      $('#dept-filter').insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`);
+    });
+
+    function visibleRows() {
+      const t = state.text.toLowerCase();
+      const out = rows.filter((r) =>
+        (!state.dept || r.department === state.dept) &&
+        (!t || Object.values(r).some((v) => String(v).toLowerCase().includes(t))));
+      const dir = state.sortDir === 'ascending' ? 1 : -1;
+      return out.sort((a, b) => {
+        const x = a[state.sortKey], y = b[state.sortKey];
+        return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * dir;
+      });
+    }
+
+    function render() {
+      const all = visibleRows();
+      const pages = Math.max(1, Math.ceil(all.length / state.size));
+      state.page = Math.min(state.page, pages);
+      const slice = all.slice((state.page - 1) * state.size, state.page * state.size);
+
+      $('#employees-body').innerHTML = slice.length ? slice.map((r) => `
+        <tr data-testid="row-${r.id}" data-id="${r.id}">
+          <td data-col="id">${r.id}</td>
+          <td data-col="name">${escapeHtml(r.name)}</td>
+          <td data-col="department">${r.department}</td>
+          <td data-col="role">${r.role}</td>
+          <td data-col="salary">${fmt.format(r.salary)}</td>
+          <td data-col="startDate">${r.startDate}</td>
+          <td>
+            <button class="small secondary" data-action="edit" data-testid="edit-${r.id}">Edit</button>
+            <button class="small danger" data-action="delete" data-testid="delete-${r.id}">Delete</button>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="7" data-testid="no-results">No matching employees.</td></tr>';
+
+      $('#salary-total').textContent = fmt.format(all.reduce((sum, r) => sum + r.salary, 0));
+      $('#page-info').textContent = `Page ${state.page} of ${pages}`;
+      $('#row-count').textContent = `${all.length} of ${rows.length} rows`;
+      $('#prev').disabled = state.page <= 1;
+      $('#next').disabled = state.page >= pages;
+      $$('#employees th[data-key]').forEach((th) =>
+        th.setAttribute('aria-sort', th.dataset.key === state.sortKey ? state.sortDir : 'none'));
+    }
+
+    $('#employees thead').addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-key]');
+      if (!th) return;
+      const key = th.dataset.key;
+      state.sortDir = state.sortKey === key && state.sortDir === 'ascending' ? 'descending' : 'ascending';
+      state.sortKey = key;
+      render();
+    });
+
+    $('#employees-body').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const tr = btn.closest('tr');
+      const id = Number(tr.dataset.id);
+      const row = rows.find((r) => r.id === id);
+
+      if (btn.dataset.action === 'delete') {
+        if (confirm(`Delete ${row.name}?`)) { rows = rows.filter((r) => r.id !== id); render(); }
+      } else if (btn.dataset.action === 'edit') {
+        const cell = tr.querySelector('[data-col="salary"]');
+        cell.innerHTML = `<input type="number" value="${row.salary}" style="width: 110px" data-testid="salary-input-${id}">`;
+        btn.textContent = 'Save';
+        btn.dataset.action = 'save';
+        btn.dataset.testid = `save-${id}`;
+        cell.querySelector('input').focus();
+      } else if (btn.dataset.action === 'save') {
+        const value = Number(tr.querySelector('[data-col="salary"] input').value);
+        if (!(value > 0)) return alert('Salary must be a positive number.');
+        row.salary = value;
+        render();
+      }
+    });
+
+    $('#filter').addEventListener('input', (e) => { state.text = e.target.value; state.page = 1; render(); });
+    $('#dept-filter').addEventListener('change', (e) => { state.dept = e.target.value; state.page = 1; render(); });
+    $('#page-size').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; render(); });
+    $('#prev').addEventListener('click', () => { state.page--; render(); });
+    $('#next').addEventListener('click', () => { state.page++; render(); });
+    $('#reset-data').addEventListener('click', () => { rows = seedData(); render(); });
+
+    render();
+  </script>
+</body>
+</html>

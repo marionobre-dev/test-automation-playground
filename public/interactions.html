@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interactions Practice</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">Interactions</h1>
+    <p class="lead">Browser dialogs, mouse and keyboard actions, frames, windows and shadow DOM.</p>
+
+    <div class="grid">
+      <section class="card" data-testid="alerts-section">
+        <h2>JavaScript dialogs</h2>
+        <div class="row">
+          <button id="js-alert" class="small" data-testid="js-alert">Alert</button>
+          <button id="js-confirm" class="small" data-testid="js-confirm">Confirm</button>
+          <button id="js-prompt" class="small" data-testid="js-prompt">Prompt</button>
+        </div>
+        <p>Result: <span id="dialog-result" data-testid="dialog-result"></span></p>
+      </section>
+
+      <section class="card" data-testid="modal-section">
+        <h2>Modal dialog</h2>
+        <p>A real in-page modal, not a browser dialog.</p>
+        <button id="open-modal" class="small" data-testid="open-modal">Open modal</button>
+        <p>Choice: <span id="modal-result" data-testid="modal-result"></span></p>
+        <dialog id="modal" data-testid="modal">
+          <h2>Subscribe to updates?</h2>
+          <p>We will send one email a month.</p>
+          <div class="row">
+            <button id="modal-confirm" class="small" data-testid="modal-confirm">Subscribe</button>
+            <button id="modal-cancel" class="small secondary" data-testid="modal-cancel">No thanks</button>
+          </div>
+        </dialog>
+      </section>
+
+      <section class="card" data-testid="drag-section">
+        <h2>Drag and drop</h2>
+        <p>Move the tools into the "Selected" box.</p>
+        <div class="drop-zone" id="source-zone" data-testid="source-zone">
+          <div class="draggable" draggable="true" id="drag-selenium" data-testid="drag-selenium">Selenium</div>
+          <div class="draggable" draggable="true" id="drag-playwright" data-testid="drag-playwright">Playwright</div>
+          <div class="draggable" draggable="true" id="drag-cypress" data-testid="drag-cypress">Cypress</div>
+        </div>
+        <p style="margin: 8px 0 4px"><strong>Selected</strong></p>
+        <div class="drop-zone" id="target-zone" data-testid="target-zone"></div>
+        <p class="hint">Selected: <span id="drop-result" data-testid="drop-result">none</span></p>
+      </section>
+
+      <section class="card" data-testid="mouse-section">
+        <h2>Mouse actions</h2>
+        <div class="row">
+          <div class="hover-menu" data-testid="hover-menu">
+            <button class="small secondary" id="hover-trigger" data-testid="hover-trigger">Hover me ▾</button>
+            <div class="menu" role="menu">
+              <button role="menuitem" data-testid="menu-profile">Profile</button>
+              <button role="menuitem" data-testid="menu-settings">Settings</button>
+              <button role="menuitem" data-testid="menu-signout">Sign out</button>
+            </div>
+          </div>
+          <button id="double-click" class="small" data-testid="double-click">Double-click me</button>
+        </div>
+        <div class="context-target" id="context-target" style="margin-top: 12px" data-testid="context-target">Right-click here</div>
+        <p>Last action: <span id="mouse-result" data-testid="mouse-result"></span></p>
+      </section>
+
+      <section class="card" data-testid="keys-section">
+        <h2>Keyboard</h2>
+        <label for="key-input">Press any key in this field</label>
+        <input type="text" id="key-input" data-testid="key-input">
+        <p>You pressed: <strong id="key-result" data-testid="key-result"></strong></p>
+        <p class="hint">Try Enter, Escape, Tab, arrows, or Ctrl+A.</p>
+      </section>
+
+      <section class="card" data-testid="frames-section">
+        <h2>iframe</h2>
+        <p>Switch into the frame to fill its form.</p>
+        <iframe src="frame.html" id="practice-frame" name="practice-frame" title="Practice frame" style="width: 100%; height: 170px; border: 1px solid var(--border); border-radius: 6px" data-testid="practice-frame"></iframe>
+        <p>Message from frame: <span id="frame-result" data-testid="frame-result"></span></p>
+      </section>
+
+      <section class="card" data-testid="windows-section">
+        <h2>Tabs &amp; windows</h2>
+        <div class="row">
+          <a href="frame.html?standalone=1" target="_blank" id="new-tab-link" data-testid="new-tab-link">Open in new tab</a>
+          <button id="new-window" class="small secondary" data-testid="new-window">Open popup window</button>
+        </div>
+      </section>
+
+      <section class="card" data-testid="shadow-section">
+        <h2>Shadow DOM</h2>
+        <p>The input and button below live inside an open shadow root.</p>
+        <shadow-greeting id="shadow-host" data-testid="shadow-host"></shadow-greeting>
+      </section>
+    </div>
+
+    <div id="context-menu" class="menu hidden" role="menu" data-testid="context-menu">
+      <button role="menuitem" data-action="Copy" data-testid="ctx-copy">Copy</button>
+      <button role="menuitem" data-action="Rename" data-testid="ctx-rename">Rename</button>
+      <button role="menuitem" data-action="Delete" data-testid="ctx-delete">Delete</button>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    const result = (id, text) => { document.getElementById(id).textContent = text; };
+
+    // Browser dialogs
+    $('#js-alert').addEventListener('click', () => { alert('I am a JS Alert'); result('dialog-result', 'You clicked OK on the alert'); });
+    $('#js-confirm').addEventListener('click', () => result('dialog-result', confirm('Do you confirm?') ? 'You clicked: Ok' : 'You clicked: Cancel'));
+    $('#js-prompt').addEventListener('click', () => {
+      const v = prompt('What is your name?');
+      result('dialog-result', v === null ? 'You cancelled the prompt' : `You entered: ${v}`);
+    });
+
+    // Modal
+    const modal = $('#modal');
+    $('#open-modal').addEventListener('click', () => modal.showModal());
+    $('#modal-confirm').addEventListener('click', () => { modal.close(); result('modal-result', 'Subscribed'); });
+    $('#modal-cancel').addEventListener('click', () => { modal.close(); result('modal-result', 'Declined'); });
+
+    // Drag and drop (HTML5 events)
+    $$('.draggable').forEach((el) =>
+      el.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', el.id)));
+    $$('.drop-zone').forEach((zone) => {
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('over');
+        const el = document.getElementById(e.dataTransfer.getData('text/plain'));
+        if (el) zone.appendChild(el);
+        const names = $$('#target-zone .draggable').map((d) => d.textContent);
+        result('drop-result', names.length ? names.join(', ') : 'none');
+      });
+    });
+
+    // Mouse
+    $$('.hover-menu .menu button').forEach((b) =>
+      b.addEventListener('click', () => result('mouse-result', `Menu: ${b.textContent}`)));
+    $('#double-click').addEventListener('dblclick', () => result('mouse-result', 'Double click'));
+    const ctx = $('#context-menu');
+    $('#context-target').addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      ctx.style.left = e.clientX + 'px';
+      ctx.style.top = e.clientY + 'px';
+      ctx.classList.remove('hidden');
+    });
+    ctx.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b) result('mouse-result', `Context menu: ${b.dataset.action}`);
+    });
+    document.addEventListener('click', () => ctx.classList.add('hidden'));
+
+    // Keyboard
+    $('#key-input').addEventListener('keydown', (e) => {
+      const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Meta'].filter(Boolean);
+      const key = e.key === ' ' ? 'Space' : e.key;
+      result('key-result', [...mods, key].filter((k, i, a) => a.indexOf(k) === i).join('+'));
+    });
+
+    // Frame -> parent message
+    window.addEventListener('message', (e) => {
+      if (e.origin === location.origin && e.data && e.data.type === 'frame-submit') result('frame-result', e.data.text);
+    });
+
+    // Popup window
+    $('#new-window').addEventListener('click', () => window.open('frame.html?standalone=1', 'practicePopup', 'width=500,height=400'));
+
+    // Shadow DOM component
+    customElements.define('shadow-greeting', class extends HTMLElement {
+      connectedCallback() {
+        const root = this.attachShadow({ mode: 'open' });
+        root.innerHTML = `
+          <style>
+            input { padding: 6px 8px; font: inherit; border: 1px solid #999; border-radius: 6px; }
+            button { padding: 6px 12px; font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid #2f5bd3; background: #2f5bd3; color: #fff; }
+            p { margin: 8px 0 0; }
+          </style>
+          <input id="shadow-input" data-testid="shadow-input" placeholder="Your name">
+          <button id="shadow-button" data-testid="shadow-button">Greet</button>
+          <p id="shadow-output" data-testid="shadow-output"></p>`;
+        root.getElementById('shadow-button').addEventListener('click', () => {
+          root.getElementById('shadow-output').textContent = `Hello, ${root.getElementById('shadow-input').value || 'stranger'}!`;
+        });
+      }
+    });
+  </script>
+</body>
+</html>

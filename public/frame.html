@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frame Content</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>body { padding: 12px; background: var(--surface); }</style>
+</head>
+<body>
+  <h2 id="frame-heading" data-testid="frame-heading">Inside the frame</h2>
+  <form id="frame-form" class="row" data-testid="frame-form">
+    <input type="text" id="frame-input" placeholder="Type a message" style="max-width: 220px" data-testid="frame-input">
+    <button type="submit" class="small" id="frame-submit" data-testid="frame-submit">Send</button>
+  </form>
+  <p id="frame-output" data-testid="frame-output"></p>
+  <script>
+    document.getElementById('frame-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = document.getElementById('frame-input').value;
+      document.getElementById('frame-output').textContent = `Sent: ${text}`;
+      if (window.parent !== window) window.parent.postMessage({ type: 'frame-submit', text }, location.origin);
+    });
+  </script>
+</body>
+</html>

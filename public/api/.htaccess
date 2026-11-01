@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Pass the Authorization header through to PHP (stripped by default under CGI/FastCGI).
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Never serve the sandbox data files directly.
+RewriteRule ^data(/|$) - [F,L]
+
+# Route everything that isn't a real file to the API router.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]

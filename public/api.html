@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>REST API Practice</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">REST API</h1>
+    <p class="lead">A JSON API for Postman, REST Assured, Playwright <code>request</code>, Karate and similar tools. Base URL: <code id="base-url" data-testid="base-url"></code></p>
+
+    <div class="card stack" style="margin-bottom: 20px">
+      <h2>Ground rules</h2>
+      <ul style="margin: 0; padding-left: 20px">
+        <li>Reads are public. <code>POST</code>, <code>PUT</code>, <code>PATCH</code> and <code>DELETE</code> need <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+        <li>Send <code>X-Sandbox-Id: your-name</code> to get your own private data set, so other people's tests don't affect yours. Without it you share the <code>public</code> sandbox.</li>
+        <li>Each sandbox resets to the same 12 seed users one hour after it was created, or immediately with <code>POST /api/reset</code>.</li>
+      </ul>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom: 24px">
+      <table data-testid="endpoints">
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>GET</td><td><code>/api/health</code></td><td>Health check</td></tr>
+          <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Body <code>{"username":"practice","password":"SuperSecret123"}</code> → token</td></tr>
+          <tr><td>GET</td><td><code>/api/users?page=1&amp;limit=6&amp;search=qa</code></td><td>Paginated, searchable list</td></tr>
+          <tr><td>GET</td><td><code>/api/users/{id}</code></td><td>One user, 404 if missing</td></tr>
+          <tr><td>POST</td><td><code>/api/users</code></td><td>Create. <code>name</code> and <code>email</code> required → 201, 409 on duplicate email, 422 on bad input</td></tr>
+          <tr><td>PUT</td><td><code>/api/users/{id}</code></td><td>Replace a user</td></tr>
+          <tr><td>PATCH</td><td><code>/api/users/{id}</code></td><td>Update some fields</td></tr>
+          <tr><td>DELETE</td><td><code>/api/users/{id}</code></td><td>Delete → 204</td></tr>
+          <tr><td>POST</td><td><code>/api/reset</code></td><td>Restore your sandbox's seed data</td></tr>
+          <tr><td>GET</td><td><code>/api/status/{code}</code></td><td>Responds with any status between 200 and 599</td></tr>
+          <tr><td>GET</td><td><code>/api/delay/{seconds}</code></td><td>Slow response (max 10 s) for timeout tests</td></tr>
+          <tr><td>ANY</td><td><code>/api/echo</code></td><td>Returns the method, query, headers and body you sent</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Example (curl)</h2>
+<pre id="curl-example" data-testid="curl-example"></pre>
+
+    <h2 style="margin-top: 24px">Try it</h2>
+    <form id="console" class="card" data-testid="api-console">
+      <div class="row">
+        <select id="req-method" style="width: auto" data-testid="req-method">
+          <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
+        </select>
+        <input type="text" id="req-path" value="/api/users" style="flex: 1 1 220px" data-testid="req-path">
+        <button type="submit" data-testid="send-request">Send</button>
+      </div>
+      <div class="row" style="margin-top: 10px">
+        <input type="text" id="req-sandbox" placeholder="X-Sandbox-Id (optional)" style="flex: 1 1 180px" data-testid="req-sandbox">
+        <input type="text" id="req-token" placeholder="Bearer token (optional)" style="flex: 2 1 240px" data-testid="req-token">
+        <button type="button" id="get-token" class="secondary small" data-testid="get-token">Get token</button>
+      </div>
+      <label for="req-body" style="margin-top: 10px">JSON body</label>
+      <textarea id="req-body" rows="4" data-testid="req-body">{"name": "Test User", "email": "test.user@example.com", "job": "QA"}</textarea>
+      <p style="margin-bottom: 4px">Status: <strong id="res-status" data-testid="res-status">–</strong> <span class="hint" id="res-time" data-testid="res-time"></span></p>
+      <pre id="res-body" class="output" data-testid="res-body"></pre>
+    </form>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    const base = location.origin + location.pathname.replace(/[^/]*$/, '') + 'api';
+    $('#base-url').textContent = base;
+    $('#curl-example').textContent =
+`# 1. Get a token
+curl -X POST ${base}/auth/login -H "Content-Type: application/json" \\
+  -d '{"username":"practice","password":"SuperSecret123"}'
+
+# 2. Create a user in your own sandbox
+curl -X POST ${base}/users -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer <token>" -H "X-Sandbox-Id: my-team" \\
+  -d '{"name":"Jane Doe","email":"jane@example.com","job":"SDET"}'`;
+
+    async function send(method, path, body) {
+      const headers = { 'Content-Type': 'application/json' };
+      const sandbox = $('#req-sandbox').value.trim();
+      const token = $('#req-token').value.trim();
+      if (sandbox) headers['X-Sandbox-Id'] = sandbox;
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const url = base + path.replace(/^\/?api/, '');
+      const started = performance.now();
+      const res = await fetch(url, { method, headers, body: ['GET', 'DELETE'].includes(method) ? undefined : body });
+      const text = await res.text();
+      $('#res-status').textContent = `${res.status} ${res.statusText}`;
+      $('#res-time').textContent = `${Math.round(performance.now() - started)} ms`;
+      $('#res-body').textContent = text;
+      try { return JSON.parse(text); } catch { return null; }
+    }
+
+    $('#console').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try { await send($('#req-method').value, $('#req-path').value.trim(), $('#req-body').value); }
+      catch (err) { $('#res-status').textContent = 'Network error'; $('#res-body').textContent = String(err); }
+    });
+
+    $('#get-token').addEventListener('click', async () => {
+      try {
+        const data = await send('POST', '/api/auth/login', JSON.stringify({ username: 'practice', password: 'SuperSecret123' }));
+        if (data && data.token) $('#req-token').value = data.token;
+      } catch (err) { $('#res-status').textContent = 'Network error'; $('#res-body').textContent = String(err); }
+    });
+  </script>
+</body>
+</html>

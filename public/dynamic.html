@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dynamic Content Practice</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">Dynamic content &amp; waits</h1>
+    <p class="lead">Each box needs a different waiting strategy. Fixed sleeps will make these tests flaky.</p>
+
+    <div class="grid">
+      <section class="card" data-testid="delayed-section">
+        <h2>1. Delayed element</h2>
+        <p>Appears after a random 2–5 second load.</p>
+        <button id="start-loading" data-testid="start-loading">Start</button>
+        <div id="loading" class="row hidden" style="margin-top: 12px" data-testid="loading"><div class="spinner"></div> Loading…</div>
+        <h3 id="finish" class="hidden" data-testid="finish">Hello World!</h3>
+      </section>
+
+      <section class="card" data-testid="visibility-section">
+        <h2>2. Hidden vs removed</h2>
+        <p>One element is hidden with CSS, the other is removed from the DOM.</p>
+        <div class="row">
+          <button id="toggle-hidden" class="secondary small" data-testid="toggle-hidden">Toggle hidden</button>
+          <button id="toggle-removed" class="secondary small" data-testid="toggle-removed">Toggle removed</button>
+        </div>
+        <p id="hidden-target" style="margin-top: 12px" data-testid="hidden-target">I am sometimes hidden.</p>
+        <div id="removed-container"><p id="removed-target" data-testid="removed-target">I am sometimes removed.</p></div>
+      </section>
+
+      <section class="card" data-testid="enable-section">
+        <h2>3. Enable / disable</h2>
+        <p>The input is enabled after a 2 second request.</p>
+        <div class="row">
+          <input type="text" id="async-input" disabled style="max-width: 200px" data-testid="async-input">
+          <button id="toggle-enable" class="small" data-testid="toggle-enable">Enable</button>
+        </div>
+        <p id="enable-message" class="hint" data-testid="enable-message"></p>
+      </section>
+
+      <section class="card" data-testid="add-remove-section">
+        <h2>4. Add / remove elements</h2>
+        <button id="add-element" class="small" data-testid="add-element">Add element</button>
+        <div id="elements" class="row" style="margin-top: 12px" data-testid="elements"></div>
+      </section>
+
+      <section class="card" data-testid="random-id-section">
+        <h2>5. Dynamic IDs</h2>
+        <p>The button ID changes on every page load. Locate it by text or test ID.</p>
+        <button id="" class="secondary" data-testid="dynamic-id-button">Click me</button>
+        <p id="dynamic-id-result" class="hint" data-testid="dynamic-id-result"></p>
+      </section>
+
+      <section class="card" data-testid="progress-section">
+        <h2>6. Progress bar</h2>
+        <p>Stop the bar as close to 75% as you can.</p>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress" data-testid="progress"><div></div></div>
+        <div class="row" style="margin-top: 10px">
+          <button id="progress-start" class="small" data-testid="progress-start">Start</button>
+          <button id="progress-stop" class="small secondary" data-testid="progress-stop">Stop</button>
+          <span id="progress-value" data-testid="progress-value">0%</span>
+        </div>
+        <p id="progress-result" class="hint" data-testid="progress-result"></p>
+      </section>
+
+      <section class="card" data-testid="text-change-section">
+        <h2>7. Text changes</h2>
+        <p>The status goes Pending → Processing → Done over about 4 seconds.</p>
+        <button id="start-job" class="small" data-testid="start-job">Start job</button>
+        <p>Status: <strong id="job-status" data-testid="job-status">Idle</strong></p>
+      </section>
+
+      <section class="card" data-testid="overlay-section">
+        <h2>8. Covered button</h2>
+        <p>An overlay blocks the button for 3 seconds after the page loads. Wait until it's clickable.</p>
+        <div style="position: relative; display: inline-block">
+          <button id="covered-button" data-testid="covered-button">Click when ready</button>
+          <div id="overlay" style="position: absolute; inset: -6px; background: var(--surface-2); opacity: 0.9; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem" data-testid="overlay">Please wait…</div>
+        </div>
+        <p id="covered-result" class="hint" data-testid="covered-result"></p>
+      </section>
+
+      <section class="card" data-testid="load-more-section">
+        <h2>9. Load more</h2>
+        <p>Each click loads 5 more items after 1 second, up to 20.</p>
+        <ul id="items" data-testid="items"></ul>
+        <button id="load-more" class="small" data-testid="load-more">Load more</button>
+      </section>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    // 1. Delayed element
+    $('#start-loading').addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      $('#finish').classList.add('hidden');
+      $('#loading').classList.remove('hidden');
+      await sleep(2000 + Math.random() * 3000);
+      $('#loading').classList.add('hidden');
+      $('#finish').classList.remove('hidden');
+      e.target.disabled = false;
+    });
+
+    // 2. Hidden vs removed
+    $('#toggle-hidden').addEventListener('click', () => $('#hidden-target').classList.toggle('hidden'));
+    const removedHtml = $('#removed-container').innerHTML;
+    $('#toggle-removed').addEventListener('click', () => {
+      const c = $('#removed-container');
+      c.innerHTML = c.children.length ? '' : removedHtml;
+    });
+
+    // 3. Enable / disable
+    $('#toggle-enable').addEventListener('click', async (e) => {
+      const input = $('#async-input'), btn = e.target, msg = $('#enable-message');
+      btn.disabled = true;
+      msg.textContent = 'Working…';
+      await sleep(2000);
+      input.disabled = !input.disabled;
+      btn.textContent = input.disabled ? 'Enable' : 'Disable';
+      msg.textContent = input.disabled ? "It's disabled!" : "It's enabled!";
+      btn.disabled = false;
+    });
+
+    // 4. Add / remove
+    let added = 0;
+    $('#add-element').addEventListener('click', () => {
+      added++;
+      const b = document.createElement('button');
+      b.className = 'small danger added-manually';
+      b.textContent = 'Delete';
+      b.dataset.testid = `added-${added}`;
+      b.addEventListener('click', () => b.remove());
+      $('#elements').appendChild(b);
+    });
+
+    // 5. Dynamic IDs
+    const dyn = $('[data-testid="dynamic-id-button"]');
+    dyn.id = 'btn-' + Math.random().toString(36).slice(2, 10);
+    dyn.addEventListener('click', () => { $('#dynamic-id-result').textContent = `Clicked button with id "${dyn.id}".`; });
+
+    // 6. Progress bar
+    let progress = 0, timer = null;
+    function setProgress(p) {
+      progress = p;
+      $('#progress > div').style.width = p + '%';
+      $('#progress').setAttribute('aria-valuenow', p);
+      $('#progress-value').textContent = p + '%';
+    }
+    $('#progress-start').addEventListener('click', () => {
+      clearInterval(timer);
+      setProgress(0);
+      $('#progress-result').textContent = '';
+      timer = setInterval(() => {
+        if (progress >= 100) { clearInterval(timer); return; }
+        setProgress(progress + 1);
+      }, 100);
+    });
+    $('#progress-stop').addEventListener('click', () => {
+      clearInterval(timer);
+      $('#progress-result').textContent = `Stopped at ${progress}%. ${progress === 75 ? 'Perfect!' : `Off by ${Math.abs(75 - progress)}.`}`;
+    });
+
+    // 7. Text changes
+    $('#start-job').addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      const s = $('#job-status');
+      s.textContent = 'Pending';
+      await sleep(1500);
+      s.textContent = 'Processing';
+      await sleep(2500);
+      s.textContent = 'Done';
+      e.target.disabled = false;
+    });
+
+    // 8. Covered button
+    setTimeout(() => $('#overlay').remove(), 3000);
+    $('#covered-button').addEventListener('click', () => { $('#covered-result').textContent = 'Button clicked!'; });
+
+    // 9. Load more
+    let count = 0;
+    $('#load-more').addEventListener('click', async (e) => {
+      const btn = e.target;
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      await sleep(1000);
+      for (let i = 0; i < 5; i++) {
+        count++;
+        $('#items').insertAdjacentHTML('beforeend', `<li data-testid="item-${count}">Item ${count}</li>`);
+      }
+      btn.textContent = 'Load more';
+      btn.disabled = count >= 20;
+      if (count >= 20) btn.textContent = 'No more items';
+    });
+  </script>
+</body>
+</html>

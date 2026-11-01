@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test Automation Playground</title>
+  <meta name="description" content="A free playground for practising Selenium, Playwright, Cypress and API test automation.">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">Test Automation Playground</h1>
+    <p class="lead">Practise UI and API automation with Selenium, Playwright, Cypress, WebdriverIO, Postman or anything else. Every element you need has a stable <code>id</code> or <code>data-testid</code>.</p>
+
+    <div class="grid" data-testid="practice-areas">
+      <a class="card" href="login.html" data-testid="card-login">
+        <h2>Login &amp; secure area</h2>
+        <p>Valid and invalid logins, error messages, session, logout, account lockout.</p>
+        <span class="badge">Beginner</span>
+      </a>
+      <a class="card" href="forms.html" data-testid="card-forms">
+        <h2>Forms</h2>
+        <p>Every input type, client-side validation, file upload and a result summary.</p>
+        <span class="badge">Beginner</span>
+      </a>
+      <a class="card" href="tables.html" data-testid="card-tables">
+        <h2>Tables</h2>
+        <p>Sort, filter, paginate, edit and delete rows. Great for data-driven checks.</p>
+        <span class="badge">Intermediate</span>
+      </a>
+      <a class="card" href="dynamic.html" data-testid="card-dynamic">
+        <h2>Dynamic content &amp; waits</h2>
+        <p>Delayed elements, spinners, random IDs, progress bars, stale elements.</p>
+        <span class="badge">Intermediate</span>
+      </a>
+      <a class="card" href="interactions.html" data-testid="card-interactions">
+        <h2>Interactions</h2>
+        <p>Alerts, modals, drag &amp; drop, hover, right/double click, keys, iframes, tabs, shadow DOM.</p>
+        <span class="badge">Advanced</span>
+      </a>
+      <a class="card" href="shop.html" data-testid="card-shop">
+        <h2>Mini shop (end-to-end)</h2>
+        <p>Search products, add to cart, change quantities, check out with a promo code.</p>
+        <span class="badge">E2E</span>
+      </a>
+      <a class="card" href="api.html" data-testid="card-api">
+        <h2>REST API</h2>
+        <p>CRUD users, token auth, status codes and slow responses for API testing.</p>
+        <span class="badge">API</span>
+      </a>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login Practice</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">Login</h1>
+    <p class="lead">Username <code>practice</code>, password <code>SuperSecret123</code>. Three wrong passwords lock the account for 30 seconds.</p>
+
+    <div class="card" style="max-width: 420px">
+      <div id="flash" class="alert hidden" role="alert" data-testid="flash"></div>
+      <form id="login-form" novalidate data-testid="login-form">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" data-testid="username">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" data-testid="password">
+        </div>
+        <div class="field field-inline">
+          <input type="checkbox" id="remember" name="remember" data-testid="remember">
+          <label for="remember">Remember me</label>
+        </div>
+        <button type="submit" id="login-button" data-testid="login-button">Log in</button>
+      </form>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    const USER = 'practice', PASS = 'SuperSecret123', MAX_ATTEMPTS = 3, LOCK_MS = 30000;
+    const flash = $('#flash');
+    const form = $('#login-form');
+    let failures = 0, lockedUntil = 0;
+
+    function show(type, msg) {
+      flash.className = 'alert ' + type;
+      flash.textContent = msg;
+    }
+
+    const reason = new URLSearchParams(location.search).get('reason');
+    if (reason === 'logout') show('success', 'You logged out of the secure area.');
+    if (reason === 'auth') show('error', 'You must log in to view the secure area.');
+
+    const remembered = localStorage.getItem('rememberedUser');
+    if (remembered) { $('#username').value = remembered; $('#remember').checked = true; }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = $('#username').value.trim();
+      const password = $('#password').value;
+      const btn = $('#login-button');
+
+      if (Date.now() < lockedUntil) {
+        return show('error', `Account locked. Try again in ${Math.ceil((lockedUntil - Date.now()) / 1000)} seconds.`);
+      }
+      if (!username || !password) return show('error', 'Username and password are required.');
+
+      btn.disabled = true;
+      btn.textContent = 'Logging in…';
+      await sleep(600); // simulate a server round trip
+      btn.disabled = false;
+      btn.textContent = 'Log in';
+
+      if (username !== USER) return show('error', 'Your username is invalid!');
+      if (password !== PASS) {
+        failures++;
+        if (failures >= MAX_ATTEMPTS) {
+          failures = 0;
+          lockedUntil = Date.now() + LOCK_MS;
+          return show('error', 'Too many failed attempts. Account locked for 30 seconds.');
+        }
+        return show('error', `Your password is invalid! ${MAX_ATTEMPTS - failures} attempt(s) left.`);
+      }
+
+      if ($('#remember').checked) localStorage.setItem('rememberedUser', username);
+      else localStorage.removeItem('rememberedUser');
+      sessionStorage.setItem('auth', JSON.stringify({ user: username, at: Date.now() }));
+      location.href = 'secure.html';
+    });
+  </script>
+</body>
+</html>

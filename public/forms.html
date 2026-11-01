@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forms Practice</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">Registration form</h1>
+    <p class="lead">Covers every common input type. Submit with errors to see validation messages; submit a valid form to see a JSON summary.</p>
+
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start">
+      <form id="register-form" class="card" novalidate data-testid="register-form">
+        <div class="field">
+          <label for="fullName">Full name *</label>
+          <input type="text" id="fullName" name="fullName" required minlength="2" data-testid="full-name">
+          <div class="error-text" id="fullName-error" data-testid="full-name-error"></div>
+        </div>
+        <div class="field">
+          <label for="email">Email *</label>
+          <input type="email" id="email" name="email" required data-testid="email">
+          <div class="error-text" id="email-error" data-testid="email-error"></div>
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" placeholder="+351 912 345 678" pattern="^\+?[0-9 ]{9,15}$" data-testid="phone">
+          <div class="error-text" id="phone-error" data-testid="phone-error"></div>
+        </div>
+        <div class="field">
+          <label for="regPassword">Password * <span class="hint">(8+ chars, one number)</span></label>
+          <input type="password" id="regPassword" name="password" required data-testid="password">
+          <div class="error-text" id="regPassword-error" data-testid="password-error"></div>
+        </div>
+        <div class="field">
+          <label for="age">Age</label>
+          <input type="number" id="age" name="age" min="18" max="120" data-testid="age">
+          <div class="error-text" id="age-error" data-testid="age-error"></div>
+        </div>
+        <div class="field">
+          <label for="birthDate">Date of birth</label>
+          <input type="date" id="birthDate" name="birthDate" data-testid="birth-date">
+        </div>
+        <div class="field">
+          <label for="country">Country *</label>
+          <select id="country" name="country" required data-testid="country">
+            <option value="">-- Select a country --</option>
+            <option value="PT">Portugal</option>
+            <option value="BR">Brazil</option>
+            <option value="ES">Spain</option>
+            <option value="GB">United Kingdom</option>
+            <option value="US">United States</option>
+            <option value="DE">Germany</option>
+          </select>
+          <div class="error-text" id="country-error" data-testid="country-error"></div>
+        </div>
+        <div class="field">
+          <label for="languages">Languages (hold Ctrl to select several)</label>
+          <select id="languages" name="languages" multiple size="4" data-testid="languages">
+            <option value="java">Java</option>
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="csharp">C#</option>
+          </select>
+        </div>
+        <fieldset class="field" data-testid="experience">
+          <legend><strong>Experience *</strong></legend>
+          <div class="field-inline">
+            <input type="radio" id="exp-junior" name="experience" value="junior" data-testid="exp-junior"><label for="exp-junior">Junior</label>
+            <input type="radio" id="exp-mid" name="experience" value="mid" data-testid="exp-mid"><label for="exp-mid">Mid</label>
+            <input type="radio" id="exp-senior" name="experience" value="senior" data-testid="exp-senior"><label for="exp-senior">Senior</label>
+          </div>
+          <div class="error-text" id="experience-error" data-testid="experience-error"></div>
+        </fieldset>
+        <fieldset class="field" data-testid="tools">
+          <legend><strong>Tools you use</strong></legend>
+          <div class="field-inline">
+            <input type="checkbox" id="tool-selenium" name="tools" value="selenium" data-testid="tool-selenium"><label for="tool-selenium">Selenium</label>
+            <input type="checkbox" id="tool-playwright" name="tools" value="playwright" data-testid="tool-playwright"><label for="tool-playwright">Playwright</label>
+            <input type="checkbox" id="tool-cypress" name="tools" value="cypress" data-testid="tool-cypress"><label for="tool-cypress">Cypress</label>
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="satisfaction">Satisfaction: <output id="satisfaction-value" data-testid="satisfaction-value">5</output></label>
+          <input type="range" id="satisfaction" name="satisfaction" min="0" max="10" value="5" style="width: 100%" data-testid="satisfaction">
+        </div>
+        <div class="field">
+          <label for="favColor">Favourite colour</label>
+          <input type="color" id="favColor" name="favColor" value="#2f5bd3" data-testid="fav-color">
+        </div>
+        <div class="field">
+          <label for="avatar">Avatar (image, max 1 MB)</label>
+          <input type="file" id="avatar" name="avatar" accept="image/*" data-testid="avatar">
+          <div class="hint" id="avatar-info" data-testid="avatar-info"></div>
+          <div class="error-text" id="avatar-error" data-testid="avatar-error"></div>
+        </div>
+        <div class="field">
+          <label for="bio">Bio <span class="hint" id="bio-count" data-testid="bio-count">0/200</span></label>
+          <textarea id="bio" name="bio" rows="3" maxlength="200" data-testid="bio"></textarea>
+        </div>
+        <div class="field field-inline">
+          <input type="checkbox" id="terms" name="terms" required data-testid="terms">
+          <label for="terms">I accept the terms *</label>
+          <div class="error-text" id="terms-error" data-testid="terms-error"></div>
+        </div>
+        <div class="row">
+          <button type="submit" id="submit" data-testid="submit">Register</button>
+          <button type="reset" id="reset" class="secondary" data-testid="reset">Reset</button>
+        </div>
+      </form>
+
+      <div class="card">
+        <h2>Result</h2>
+        <div id="form-status" class="alert hidden" role="status" data-testid="form-status"></div>
+        <pre id="form-result" data-testid="form-result">Nothing submitted yet.</pre>
+      </div>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    const form = $('#register-form');
+
+    $('#satisfaction').addEventListener('input', (e) => { $('#satisfaction-value').textContent = e.target.value; });
+    $('#bio').addEventListener('input', (e) => { $('#bio-count').textContent = `${e.target.value.length}/200`; });
+    $('#avatar').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      $('#avatar-info').textContent = f ? `${f.name} (${Math.round(f.size / 1024)} KB)` : '';
+    });
+
+    function setError(id, msg) {
+      const input = document.getElementById(id);
+      const err = document.getElementById(id + '-error');
+      if (input) input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+      if (err) err.textContent = msg || '';
+      return !msg;
+    }
+
+    function validate() {
+      let ok = true;
+      const v = (id) => document.getElementById(id).value.trim();
+      ok &= setError('fullName', v('fullName').length < 2 ? 'Full name must be at least 2 characters.' : '');
+      ok &= setError('email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email')) ? 'Enter a valid email address.' : '');
+      ok &= setError('phone', v('phone') && !/^\+?[0-9 ]{9,15}$/.test(v('phone')) ? 'Phone must be 9-15 digits.' : '');
+      const pw = $('#regPassword').value;
+      ok &= setError('regPassword', pw.length < 8 || !/\d/.test(pw) ? 'Password needs 8+ characters and a number.' : '');
+      const age = v('age');
+      ok &= setError('age', age && (Number(age) < 18 || Number(age) > 120) ? 'Age must be between 18 and 120.' : '');
+      ok &= setError('country', !v('country') ? 'Please choose a country.' : '');
+      ok &= setError('experience', !$('input[name="experience"]:checked') ? 'Choose your experience level.' : '');
+      const file = $('#avatar').files[0];
+      ok &= setError('avatar', file && file.size > 1024 * 1024 ? 'File is larger than 1 MB.' : '');
+      ok &= setError('terms', !$('#terms').checked ? 'You must accept the terms.' : '');
+      return Boolean(ok);
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const status = $('#form-status');
+      if (!validate()) {
+        status.className = 'alert error';
+        status.textContent = 'Please fix the highlighted fields.';
+        const first = $('[aria-invalid="true"]');
+        if (first) first.focus();
+        return;
+      }
+      const data = {
+        fullName: $('#fullName').value.trim(),
+        email: $('#email').value.trim(),
+        phone: $('#phone').value.trim(),
+        age: $('#age').value ? Number($('#age').value) : null,
+        birthDate: $('#birthDate').value || null,
+        country: $('#country').value,
+        languages: $$('#languages option:checked').map((o) => o.value),
+        experience: $('input[name="experience"]:checked').value,
+        tools: $$('input[name="tools"]:checked').map((c) => c.value),
+        satisfaction: Number($('#satisfaction').value),
+        favColor: $('#favColor').value,
+        avatar: $('#avatar').files[0] ? $('#avatar').files[0].name : null,
+        bio: $('#bio').value,
+      };
+      status.className = 'alert success';
+      status.textContent = `Thanks ${data.fullName}, your registration was received.`;
+      $('#form-result').textContent = JSON.stringify(data, null, 2);
+    });
+
+    form.addEventListener('reset', () => {
+      setTimeout(() => {
+        $$('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+        $$('.error-text').forEach((el) => (el.textContent = ''));
+        $('#satisfaction-value').textContent = '5';
+        $('#bio-count').textContent = '0/200';
+        $('#avatar-info').textContent = '';
+        $('#form-status').className = 'alert hidden';
+        $('#form-result').textContent = 'Nothing submitted yet.';
+      });
+    });
+  </script>
+</body>
+</html>

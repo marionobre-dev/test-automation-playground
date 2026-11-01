@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Practice Shop</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .shop-layout { display: grid; gap: 20px; grid-template-columns: 1fr; }
+    @media (min-width: 860px) { .shop-layout { grid-template-columns: 1fr 320px; align-items: start; } }
+    .swatch { aspect-ratio: 4 / 3; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 2.6rem; margin-bottom: 10px; background: var(--surface-2); }
+  </style>
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <h1 data-testid="page-title">Practice shop</h1>
+    <p class="lead">An end-to-end flow: search, add to cart, update quantities, apply promo code <code>SAVE10</code>, check out. The cart survives page reloads.</p>
+
+    <!-- Catalogue + cart -->
+    <section id="view-catalog" data-testid="view-catalog">
+      <div class="shop-layout">
+        <div>
+          <div class="row" style="margin-bottom: 14px">
+            <input type="search" id="search" placeholder="Search products…" style="max-width: 240px" data-testid="search">
+            <select id="category" style="max-width: 170px" data-testid="category">
+              <option value="">All categories</option>
+              <option>Hardware</option><option>Books</option><option>Apparel</option>
+            </select>
+            <select id="sort" style="max-width: 190px" data-testid="sort">
+              <option value="name">Name (A–Z)</option>
+              <option value="price-asc">Price (low to high)</option>
+              <option value="price-desc">Price (high to low)</option>
+            </select>
+          </div>
+          <div class="grid" id="products" style="grid-template-columns: repeat(auto-fill, minmax(190px, 1fr))" data-testid="products"></div>
+          <p id="no-products" class="hidden" data-testid="no-products">No products match your search.</p>
+        </div>
+
+        <aside class="card" data-testid="cart">
+          <h2>Cart (<span id="cart-count" data-testid="cart-count">0</span>)</h2>
+          <div id="cart-lines" data-testid="cart-lines"></div>
+          <p id="cart-empty" class="hint" data-testid="cart-empty">Your cart is empty.</p>
+          <div class="row" style="margin: 12px 0">
+            <input type="text" id="promo" placeholder="Promo code" style="max-width: 150px" data-testid="promo">
+            <button id="apply-promo" class="small secondary" data-testid="apply-promo">Apply</button>
+          </div>
+          <p id="promo-message" class="hint" data-testid="promo-message"></p>
+          <p>Subtotal: <strong id="subtotal" data-testid="subtotal">€0.00</strong><br>
+             Discount: <strong id="discount" data-testid="discount">€0.00</strong><br>
+             Total: <strong id="total" data-testid="total">€0.00</strong></p>
+          <button id="checkout" disabled data-testid="checkout">Checkout</button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Checkout -->
+    <section id="view-checkout" class="hidden" data-testid="view-checkout">
+      <form id="checkout-form" class="card" style="max-width: 520px" novalidate data-testid="checkout-form">
+        <h2>Shipping details</h2>
+        <div class="field"><label for="ship-name">Full name</label><input type="text" id="ship-name" required data-testid="ship-name"></div>
+        <div class="field"><label for="ship-address">Address</label><input type="text" id="ship-address" required data-testid="ship-address"></div>
+        <div class="row">
+          <div class="field" style="flex: 1 1 160px"><label for="ship-city">City</label><input type="text" id="ship-city" required data-testid="ship-city"></div>
+          <div class="field" style="flex: 1 1 120px"><label for="ship-zip">Postal code</label><input type="text" id="ship-zip" required placeholder="1000-001" data-testid="ship-zip"></div>
+        </div>
+        <fieldset class="field">
+          <legend><strong>Shipping</strong></legend>
+          <div class="field-inline">
+            <input type="radio" name="shipping" id="ship-standard" value="0" checked data-testid="ship-standard"><label for="ship-standard">Standard (free)</label>
+            <input type="radio" name="shipping" id="ship-express" value="9.99" data-testid="ship-express"><label for="ship-express">Express (€9.99)</label>
+          </div>
+        </fieldset>
+        <div id="checkout-error" class="alert error hidden" role="alert" data-testid="checkout-error"></div>
+        <p>Order total: <strong id="checkout-total" data-testid="checkout-total"></strong></p>
+        <div class="row">
+          <button type="submit" id="place-order" data-testid="place-order">Place order</button>
+          <button type="button" id="back-to-cart" class="secondary" data-testid="back-to-cart">Back to cart</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Confirmation -->
+    <section id="view-done" class="hidden" data-testid="view-done">
+      <div class="card" style="max-width: 520px">
+        <div class="alert success" role="status">Thank you for your order!</div>
+        <p>Order number: <strong id="order-number" data-testid="order-number"></strong></p>
+        <p>Amount charged: <strong id="order-amount" data-testid="order-amount"></strong></p>
+        <button id="continue-shopping" data-testid="continue-shopping">Continue shopping</button>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    const PRODUCTS = [
+      { id: 1, name: 'Mechanical Keyboard', price: 89.9, category: 'Hardware', icon: '⌨️', stock: 5 },
+      { id: 2, name: 'Wireless Mouse', price: 24.5, category: 'Hardware', icon: '🖱️', stock: 10 },
+      { id: 3, name: '27" Monitor', price: 229, category: 'Hardware', icon: '🖥️', stock: 2 },
+      { id: 4, name: 'USB-C Hub', price: 39.99, category: 'Hardware', icon: '🔌', stock: 0 },
+      { id: 5, name: 'Clean Code', price: 34.95, category: 'Books', icon: '📘', stock: 8 },
+      { id: 6, name: 'The Art of Software Testing', price: 42, category: 'Books', icon: '📗', stock: 3 },
+      { id: 7, name: 'QA Hoodie', price: 49, category: 'Apparel', icon: '🧥', stock: 6 },
+      { id: 8, name: '"It works on my machine" T-shirt', price: 19.99, category: 'Apparel', icon: '👕', stock: 12 },
+    ];
+    const PROMOS = { SAVE10: 0.10, HALFPRICE: 0.5 };
+    const money = (n) => '€' + n.toFixed(2);
+
+    const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+    let cart = load('shop.cart', {});          // { productId: qty }
+    let promo = load('shop.promo', null);
+    const save = () => { localStorage.setItem('shop.cart', JSON.stringify(cart)); localStorage.setItem('shop.promo', JSON.stringify(promo)); };
+
+    function totals() {
+      const subtotal = Object.entries(cart).reduce((s, [id, q]) => s + PRODUCTS.find((p) => p.id == id).price * q, 0);
+      const discount = promo ? Math.round(subtotal * PROMOS[promo] * 100) / 100 : 0;
+      return { subtotal, discount, total: subtotal - discount };
+    }
+
+    function renderProducts() {
+      const q = $('#search').value.trim().toLowerCase();
+      const cat = $('#category').value;
+      const sort = $('#sort').value;
+      const list = PRODUCTS.filter((p) => (!cat || p.category === cat) && p.name.toLowerCase().includes(q))
+        .sort((a, b) => sort === 'price-asc' ? a.price - b.price : sort === 'price-desc' ? b.price - a.price : a.name.localeCompare(b.name));
+      $('#products').innerHTML = list.map((p) => `
+        <div class="card product" data-testid="product-${p.id}" data-product-id="${p.id}">
+          <div class="swatch" aria-hidden="true">${p.icon}</div>
+          <h3 style="margin: 0 0 4px; font-size: 1rem" data-testid="product-name">${escapeHtml(p.name)}</h3>
+          <p class="hint" style="margin: 0 0 6px">${p.category} · <span data-testid="product-stock">${p.stock ? p.stock + ' in stock' : 'Out of stock'}</span></p>
+          <p class="price" data-testid="product-price">${money(p.price)}</p>
+          <button class="small" data-add="${p.id}" ${p.stock && (cart[p.id] || 0) < p.stock ? '' : 'disabled'} data-testid="add-to-cart-${p.id}">${p.stock ? 'Add to cart' : 'Sold out'}</button>
+        </div>`).join('');
+      $('#no-products').classList.toggle('hidden', list.length > 0);
+    }
+
+    function renderCart() {
+      const ids = Object.keys(cart);
+      $('#cart-lines').innerHTML = ids.map((id) => {
+        const p = PRODUCTS.find((x) => x.id == id);
+        return `<div class="cart-line" data-testid="cart-line-${id}">
+          <span>${escapeHtml(p.name)}</span>
+          <span class="row">
+            <input type="number" min="1" max="${p.stock}" value="${cart[id]}" data-qty="${id}" aria-label="Quantity for ${escapeHtml(p.name)}" data-testid="qty-${id}">
+            <span data-testid="line-total-${id}">${money(p.price * cart[id])}</span>
+            <button class="small secondary" data-remove="${id}" data-testid="remove-${id}" aria-label="Remove ${escapeHtml(p.name)}">✕</button>
+          </span>
+        </div>`;
+      }).join('');
+      const t = totals();
+      $('#cart-empty').classList.toggle('hidden', ids.length > 0);
+      $('#cart-count').textContent = Object.values(cart).reduce((a, b) => a + b, 0);
+      $('#subtotal').textContent = money(t.subtotal);
+      $('#discount').textContent = '-' + money(t.discount);
+      $('#total').textContent = money(t.total);
+      $('#checkout').disabled = ids.length === 0;
+      if (promo) $('#promo-message').textContent = `Code ${promo} applied (${PROMOS[promo] * 100}% off).`;
+    }
+
+    function render() { renderProducts(); renderCart(); }
+
+    function showView(name) {
+      ['catalog', 'checkout', 'done'].forEach((v) => $('#view-' + v).classList.toggle('hidden', v !== name));
+      window.scrollTo(0, 0);
+    }
+
+    $('#products').addEventListener('click', (e) => {
+      const id = e.target.dataset.add;
+      if (!id) return;
+      cart[id] = (cart[id] || 0) + 1;
+      save(); render();
+    });
+    $('#cart-lines').addEventListener('change', (e) => {
+      const id = e.target.dataset.qty;
+      if (!id) return;
+      const p = PRODUCTS.find((x) => x.id == id);
+      const q = Math.floor(Number(e.target.value));
+      if (q <= 0) delete cart[id];
+      else cart[id] = Math.min(q, p.stock);
+      save(); render();
+    });
+    $('#cart-lines').addEventListener('click', (e) => {
+      const id = e.target.dataset.remove;
+      if (!id) return;
+      delete cart[id];
+      save(); render();
+    });
+    ['#search', '#category', '#sort'].forEach((s) => $(s).addEventListener('input', renderProducts));
+
+    $('#apply-promo').addEventListener('click', () => {
+      const code = $('#promo').value.trim().toUpperCase();
+      if (PROMOS[code]) { promo = code; save(); renderCart(); }
+      else { promo = null; save(); renderCart(); $('#promo-message').textContent = code ? `"${code}" is not a valid code.` : 'Enter a code.'; }
+    });
+
+    function checkoutTotal() {
+      return totals().total + Number($('input[name="shipping"]:checked').value);
+    }
+    $('#checkout').addEventListener('click', () => { $('#checkout-total').textContent = money(checkoutTotal()); showView('checkout'); });
+    $$('input[name="shipping"]').forEach((r) => r.addEventListener('change', () => { $('#checkout-total').textContent = money(checkoutTotal()); }));
+    $('#back-to-cart').addEventListener('click', () => showView('catalog'));
+
+    $('#checkout-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = $('#checkout-error');
+      const missing = ['ship-name', 'ship-address', 'ship-city', 'ship-zip'].filter((id) => !document.getElementById(id).value.trim());
+      missing.forEach((id) => document.getElementById(id).setAttribute('aria-invalid', 'true'));
+      ['ship-name', 'ship-address', 'ship-city', 'ship-zip'].filter((id) => !missing.includes(id)).forEach((id) => document.getElementById(id).removeAttribute('aria-invalid'));
+      if (missing.length) { err.textContent = 'Please fill in all shipping fields.'; err.classList.remove('hidden'); return; }
+      if (!/^\d{4}-\d{3}$/.test($('#ship-zip').value.trim())) {
+        $('#ship-zip').setAttribute('aria-invalid', 'true');
+        err.textContent = 'Postal code must look like 1000-001.'; err.classList.remove('hidden'); return;
+      }
+      err.classList.add('hidden');
+      const btn = $('#place-order');
+      btn.disabled = true; btn.textContent = 'Placing order…';
+      await sleep(1200);
+      $('#order-number').textContent = 'ORD-' + Date.now().toString().slice(-8);
+      $('#order-amount').textContent = money(checkoutTotal());
+      cart = {}; promo = null; save();
+      btn.disabled = false; btn.textContent = 'Place order';
+      e.target.reset();
+      showView('done');
+    });
+    $('#continue-shopping').addEventListener('click', () => { $('#promo').value = ''; $('#promo-message').textContent = ''; render(); showView('catalog'); });
+
+    render();
+  </script>
+</body>
+</html>

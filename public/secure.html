@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure Area</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script>
+    // Runs before render so unauthenticated visitors never see the page.
+    if (!sessionStorage.getItem('auth')) location.replace('login.html?reason=auth');
+  </script>
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <div class="alert success" role="status" data-testid="flash">You logged into a secure area!</div>
+    <h1 data-testid="page-title">Secure area</h1>
+    <p class="lead">Welcome, <strong id="welcome-user" data-testid="welcome-user"></strong>. You logged in at <span id="login-time" data-testid="login-time"></span>.</p>
+    <button id="logout" class="secondary" data-testid="logout">Log out</button>
+  </main>
+  <footer id="site-footer"></footer>
+  <script src="assets/app.js"></script>
+  <script>
+    const auth = JSON.parse(sessionStorage.getItem('auth') || '{}');
+    $('#welcome-user').textContent = auth.user || '';
+    $('#login-time').textContent = auth.at ? new Date(auth.at).toLocaleTimeString() : '';
+    $('#logout').addEventListener('click', () => {
+      sessionStorage.removeItem('auth');
+      location.href = 'login.html?reason=logout';
+    });
+  </script>
+</body>
+</html>

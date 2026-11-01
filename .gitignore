@@ -1,0 +1,11 @@
+# FTP credentials for deploy-on-save. Never commit this.
+deploy.config.json
+
+# Local Claude Code settings
+.claude/
+
+# Runtime data written by the PHP API
+public/api/data/
+
+.DS_Store
+Thumbs.db
