@@ -23,6 +23,8 @@ Repository **Settings → Secrets and variables → Actions**:
 | Variable | `SITE_URL` | e.g. `https://testautomation.example.com` (enables the post-deploy check) |
 | Variable | `FTP_SERVER_DIR` | optional; defaults to `./`, the FTP account's own folder |
 
+Before uploading, the workflow appends the commit to every stylesheet and script URL (`assets/style.css?v=96454df`). Each deploy gets fresh URLs, so Cloudflare and visitors' browsers never serve a stale CSS or JS file and no cache purge is needed. The files in the repo keep plain URLs; the change only exists in the uploaded copy.
+
 The action stores `.ftp-deploy-sync-state.json` on the server to know what changed. Deleting it forces a full re-upload.
 
 ## Option B: deploy on save (Windows)

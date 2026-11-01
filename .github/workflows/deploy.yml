@@ -18,6 +18,12 @@ jobs:
       - name: Lint PHP
         run: find public -name '*.php' -print0 | xargs -0 -n1 php -l
 
+      # Append the commit to CSS/JS URLs so Cloudflare and browsers never serve stale copies.
+      - name: Version asset URLs
+        run: |
+          sed -i -E "s#(assets/[A-Za-z0-9_-]+\.(css|js))\"#\1?v=${GITHUB_SHA::7}\"#g" public/*.html
+          grep -ho 'assets/[^"]*?v=[0-9a-f]*' public/*.html | sort | uniq -c
+
       # Only changed files are uploaded; the action keeps a state file on the server.
       - name: Upload over FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
