@@ -1,9 +1,0 @@
-{
-  "host": "ftp.yourdomain.com",
-  "port": 21,
-  "username": "deploy@yourdomain.com",
-  "password": "your-ftp-password",
-  "remoteRoot": "/",
-  "useTls": true,
-  "ignoreCertErrors": false
-}

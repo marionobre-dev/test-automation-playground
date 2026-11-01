@@ -1,6 +1,3 @@
-# FTP credentials for deploy-on-save. Never commit this.
-deploy.config.json
-
 # Local Claude Code settings
 .claude/
 
