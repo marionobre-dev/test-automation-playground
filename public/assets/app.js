@@ -22,7 +22,21 @@
       pages.map(([href, label]) =>
         `<a href="${href}" data-testid="nav-${label.toLowerCase()}"${href === current ? ' aria-current="page"' : ''}>${label}</a>`
       ).join('') +
-      '</nav></div>';
+      '</nav>' +
+      '<button type="button" class="theme-toggle" id="theme-toggle" data-testid="theme-toggle"></button>' +
+      '</div>';
+
+    const toggle = document.getElementById('theme-toggle');
+    const sync = () => {
+      const theme = window.currentTheme();
+      toggle.textContent = theme === 'dark' ? '☀ Light mode' : '☾ Dark mode';
+      toggle.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`);
+      toggle.dataset.theme = theme;
+    };
+    toggle.addEventListener('click', () => window.setTheme(window.currentTheme() === 'dark' ? 'light' : 'dark'));
+    document.addEventListener('themechange', sync);
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sync);
+    sync();
   }
 
   const footer = document.getElementById('site-footer');

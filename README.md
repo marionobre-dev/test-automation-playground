@@ -1,60 +1,130 @@
 # Test Automation Playground
 
-A public website for practising UI and API test automation (Selenium, Playwright, Cypress, WebdriverIO, Postman, REST Assured…). Plain HTML/CSS/JS plus a small PHP API, so it runs on any cPanel host with no build step.
+A free website built for practising test automation. Point Selenium, Playwright, Cypress, WebdriverIO, Postman, REST Assured or any other tool at it and work through realistic scenarios, from a first login test to full end-to-end and API suites.
 
-| Page | What it practises |
+**Live site:** https://testautomation.marionobre.com/
+
+## Why use it
+
+- **Stable locators.** Every interactive element has an `id` and/or a `data-testid`, so you can focus on test design instead of fighting selectors. (A few elements are deliberately harder; those are called out below.)
+- **Deterministic data.** The tables and API start from the same seed data every time, so assertions don't drift.
+- **Realistic problems.** Delays, spinners, disabled states, overlays, iframes, shadow DOM and browser dialogs: the things that make real suites flaky.
+- **No sign-up.** Everything is public. The practice account is `practice` / `SuperSecret123`.
+
+## Practice areas
+
+### Login (`login.html` → `secure.html`)
+
+| Scenario | What happens |
 | --- | --- |
-| `login.html` → `secure.html` | Valid/invalid login, error messages, lockout after 3 failures, logout, protected page redirect |
-| `forms.html` | Every input type, validation messages, file upload, JSON result |
-| `tables.html` | Sorting, filtering, pagination, inline edit, delete with `confirm()` |
-| `dynamic.html` | Explicit waits: delayed elements, hidden vs removed, enable/disable, random IDs, progress bar, overlay |
-| `interactions.html` | alert/confirm/prompt, modal, drag & drop, hover, double/right click, keys, iframe, new tab/popup, shadow DOM |
-| `shop.html` | End-to-end: search, cart, quantities, promo code `SAVE10`, checkout, order number |
-| `api.html` + `/api/*` | REST CRUD with bearer auth, per-user sandboxes, status codes, delays, echo |
+| Valid login | Redirects to the secure area with "You logged into a secure area!" |
+| Wrong username / password | Inline error in `[data-testid="flash"]` |
+| Empty fields | "Username and password are required." |
+| Three wrong passwords | Account locked for 30 seconds |
+| "Remember me" | Username is pre-filled on the next visit |
+| Open `secure.html` directly | Redirected back to login with an error |
+| Log out | Back to login with a confirmation message |
 
-Every element has an `id` and/or `data-testid`. Practice login: `practice` / `SuperSecret123`.
+**Try:** a data-driven test over valid and invalid credentials; a test for the lockout and its recovery.
 
-## Layout
+### Forms (`forms.html`)
 
+A registration form with text, email, phone, password, number, date, select, multi-select, radios, checkboxes, range slider, colour picker, file upload, a textarea with a live character counter and a terms checkbox. Submitting shows field-level errors, or a JSON summary of everything entered in `[data-testid="form-result"]`.
+
+**Try:** fill every field type with your tool's API; assert each validation message; upload a file larger than 1 MB.
+
+### Tables (`tables.html`)
+
+47 employees with sorting on every column, a free-text filter, a department filter, page sizes of 5/10/25/50, inline salary editing, delete with a `confirm()` dialog, and a salary total that updates with the filter. Rows are `[data-testid="row-<id>"]` and cells carry `data-col="<column>"`.
+
+**Try:** assert sort order across pages; read the whole table into a data structure; edit a salary and check the total.
+
+### Dynamic content (`dynamic.html`)
+
+Nine scenarios that each need a different waiting strategy:
+
+1. An element that appears after a random 2–5 second load
+2. Hidden with CSS vs removed from the DOM
+3. An input that is enabled after an async call
+4. Adding and removing elements
+5. A button whose `id` changes on every page load (locate it another way)
+6. A progress bar you have to stop at 75%
+7. A status that goes Pending → Processing → Done
+8. A button covered by an overlay for 3 seconds
+9. "Load more" in batches until there's nothing left
+
+**Try:** solve every one without a fixed sleep.
+
+### Interactions (`interactions.html`)
+
+JavaScript `alert`, `confirm` and `prompt`; an in-page modal; HTML5 drag and drop; a hover menu; double-click; a custom right-click menu; key press detection with modifiers; a form inside an iframe; links that open a new tab and a popup window; and a component inside an open **shadow root**.
+
+**Try:** accept and dismiss each dialog; drag all tools into "Selected"; switch into the iframe and back; reach into the shadow DOM.
+
+### Shop (`shop.html`)
+
+A small end-to-end flow: search, filter by category, sort by price, add to cart (one product is out of stock and stock limits apply), change quantities, apply promo codes `SAVE10` or `HALFPRICE`, choose shipping and check out. The cart survives reloads. Postal codes must look like `1000-001`.
+
+**Try:** a complete purchase that asserts the subtotal, discount, shipping and order total; an invalid promo code; checkout validation.
+
+### Light and dark mode
+
+Pages follow the visitor's system setting until the header toggle (`[data-testid="theme-toggle"]`) is clicked. The choice is stored in `localStorage` under `theme` and shown as `<html data-theme="light|dark">`, which is useful for visual regression or theme-switching tests.
+
+## REST API
+
+The API lives at `/api`, and `api.html` has a page where you can try requests in the browser.
+
+- Reads are public. Writes need a bearer token from `POST /api/auth/login` with `{"username":"practice","password":"SuperSecret123"}`.
+- Send an `X-Sandbox-Id: <your-name>` header to get **your own private data set**, so other people's tests never affect yours. Without it you share the `public` sandbox.
+- Every sandbox resets to 12 seed users an hour after it was created, or immediately with `POST /api/reset`.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/health` | Health check |
+| POST | `/api/auth/login` | Returns `{ "token": "...", "tokenType": "Bearer" }`; 401 on bad credentials |
+| GET | `/api/users?page=1&limit=6&search=qa` | Paginated and searchable |
+| GET | `/api/users/{id}` | 404 if missing |
+| POST | `/api/users` | `name` and `email` required → 201; 409 duplicate email; 422 invalid input |
+| PUT / PATCH | `/api/users/{id}` | Replace / partially update |
+| DELETE | `/api/users/{id}` | 204 |
+| POST | `/api/reset` | Restore your sandbox's seed data |
+| GET | `/api/status/{code}` | Responds with any status from 200 to 599 |
+| GET | `/api/delay/{seconds}` | Slow response, up to 10 seconds |
+| ANY | `/api/echo` | Returns the method, query, headers and body you sent |
+
+```bash
+curl -X POST https://testautomation.marionobre.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"practice","password":"SuperSecret123"}'
 ```
-public/            ← everything here is uploaded to the web root (public_html)
-  api/index.php    ← API router (PHP 7.4+); data lives in api/data/ (created at runtime, not deployed)
-scripts/serve.ps1         local preview server
-scripts/watch-deploy.ps1  upload-on-save to cPanel
-.github/workflows/deploy.yml  deploy on push to main
-```
 
-## Preview locally
+**Try:** a full create → read → update → delete chain; contract tests on the error bodies; a timeout test against `/api/delay/5`.
+
+## Run it locally
+
+The site is plain HTML, CSS and JavaScript with no build step. On Windows, with nothing to install:
 
 ```bash
 powershell -ExecutionPolicy Bypass -File scripts/serve.ps1
 ```
 
-Open http://localhost:8080/. The API only works once deployed (PHP runs on the server).
+Then open http://localhost:8080/. The API needs PHP, so locally `/api/*` returns 501. To run the API too, use any PHP 7.4+ server from the `public` folder (Apache with `.htaccess` enabled matches production).
 
-## cPanel: create an FTP account
+## Project structure
 
-1. cPanel → **FTP Accounts** → create e.g. `deploy@yourdomain.com`.
-2. Set its **Directory** to `public_html` (or a subdomain folder). The account then sees that folder as `/`.
-3. Note the FTP server name shown under **Configure FTP Client** (often `ftp.yourdomain.com`).
-
-## Option A: deploy on every save
-
-1. Copy `deploy.config.example.json` to `deploy.config.json` and fill in host, username and password. It's in `.gitignore`.
-2. Run, and leave it running while you edit:
-
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/watch-deploy.ps1 -Full
+```
+public/                 the website (deployed as-is)
+  *.html                one page per practice area
+  assets/style.css      shared styles and light/dark colour tokens
+  assets/theme.js       applies the saved theme before the page draws
+  assets/app.js         shared header, footer and helpers
+  api/index.php         REST API router (PHP 7.4+)
+  api/.htaccess         routes /api/* to index.php and blocks the data folder
+scripts/serve.ps1       local preview server
+docs/DEPLOYMENT.md      how the site is deployed
 ```
 
-`-Full` uploads everything once first; drop it afterwards to only push changes. Deleted files are deleted on the server too. If you get a certificate error, your host presents a certificate for its own hostname: either use that hostname as `host`, or set `"ignoreCertErrors": true`.
+## Contributing
 
-## Option B: deploy from GitHub Actions
-
-1. Install Git, create a GitHub repo and push this folder to its `main` branch.
-2. In the repo, **Settings → Secrets and variables → Actions**:
-   - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
-   - Variables (optional): `FTP_SERVER_DIR` (default `./`, which is right when the FTP account is rooted at public_html as above; use `public_html/` if you log in with your main cPanel account), `SITE_URL` (e.g. `https://playground.yourdomain.com`) to run a smoke test after deploy.
-3. Every push to `main` lints the PHP and uploads only the changed files. You can also run it manually from the **Actions** tab.
-
-Use one option per environment, or both: Actions for the real site, watch-deploy for a staging subdomain.
+Ideas for new practice scenarios are welcome. Keep new pages in the same style: every interactive element gets a stable `data-testid`, behaviour is deterministic unless randomness is the point of the exercise, and anything deliberately tricky is described on the page.
