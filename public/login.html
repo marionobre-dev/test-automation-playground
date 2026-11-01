@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login Practice</title>
+  <title>Login | Mario's Test Automation Playground</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
 </head>
@@ -30,6 +31,167 @@
         </div>
         <button type="submit" id="login-button" data-testid="login-button">Log in</button>
       </form>
+    </div>
+
+    <h2 class="exercises-intro">Exercises</h2>
+    <div class="exercises" data-testid="exercises">
+      <article class="card" data-testid="exercise-valid-login">
+        <div class="exercise-head"><h3>1. Log in successfully</h3><span class="tag easy">Beginner</span></div>
+        <p>Log in with the practice account and confirm you reached the secure area.</p>
+        <div class="expected"><p><strong>Expected:</strong> the URL ends in <code>secure.html</code>, the green banner says you logged in, and the welcome text shows the username <code>practice</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('logs in with valid credentials', async ({ page }) => {
+  await page.goto('/login.html');
+
+  // getByTestId() looks up the data-testid attribute, Playwright's default test id.
+  await page.getByTestId('username').fill('practice');
+  await page.getByTestId('password').fill('SuperSecret123');
+  await page.getByTestId('login-button').click();
+
+  // The app "talks to a server" for ~600 ms before redirecting.
+  // toHaveURL() keeps retrying until it matches, so no sleep is needed.
+  await expect(page).toHaveURL(/secure\.html/);
+  await expect(page.getByTestId('flash')).toHaveText('You logged into a secure area!');
+  await expect(page.getByTestId('welcome-user')).toHaveText('practice');
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-invalid-login">
+        <div class="exercise-head"><h3>2. Reject bad credentials</h3><span class="tag easy">Beginner</span></div>
+        <p>Write one data-driven test that tries several bad inputs and checks each error message.</p>
+        <div class="expected">
+          <p><strong>Expected:</strong> you stay on the login page and the red banner shows:</p>
+          <ul>
+            <li>unknown username → <code>Your username is invalid!</code></li>
+            <li>wrong password → <code>Your password is invalid! 2 attempt(s) left.</code></li>
+            <li>both fields empty → <code>Username and password are required.</code></li>
+          </ul>
+        </div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+// Each row becomes its own test, so failures are reported separately
+// and the cases run in parallel.
+const cases = [
+  { name: 'unknown username', user: 'nobody', pass: 'SuperSecret123', error: 'Your username is invalid!' },
+  { name: 'wrong password', user: 'practice', pass: 'wrong', error: 'Your password is invalid! 2 attempt(s) left.' },
+  { name: 'empty fields', user: '', pass: '', error: 'Username and password are required.' },
+];
+
+for (const c of cases) {
+  test(`shows an error for ${c.name}`, async ({ page }) => {
+    await page.goto('/login.html');
+    await page.getByTestId('username').fill(c.user);
+    await page.getByTestId('password').fill(c.pass);
+    await page.getByTestId('login-button').click();
+
+    await expect(page.getByTestId('flash')).toHaveText(c.error);
+    // Negative check: we must not have been let in.
+    await expect(page).toHaveURL(/login\.html/);
+  });
+}
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-lockout">
+        <div class="exercise-head"><h3>3. Lock the account, then unlock it</h3><span class="tag medium">Intermediate</span></div>
+        <p>Three wrong passwords lock the account for 30 seconds. Prove it, without making your test wait 30 real seconds.</p>
+        <div class="expected">
+          <p><strong>Expected:</strong> the attempts count down (2 left, 1 left), the third failure says <code>Too many failed attempts. Account locked for 30 seconds.</code>, the correct password is refused while locked, and it works again once 30 seconds have passed.</p>
+        </div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('locks the account after three wrong passwords', async ({ page }) => {
+  // Take control of the page's clock BEFORE loading the page.
+  // Time still flows normally until we fast-forward it.
+  await page.clock.install();
+  await page.goto('/login.html');
+
+  const flash = page.getByTestId('flash');
+  await page.getByTestId('username').fill('practice');
+
+  // Wait for each attempt's message before the next attempt,
+  // otherwise clicks could land while the button is still busy.
+  for (const message of ['2 attempt(s) left.', '1 attempt(s) left.', 'Account locked for 30 seconds.']) {
+    await page.getByTestId('password').fill('wrong');
+    await page.getByTestId('login-button').click();
+    await expect(flash).toContainText(message);
+  }
+
+  // Even the right password is refused while locked.
+  await page.getByTestId('password').fill('SuperSecret123');
+  await page.getByTestId('login-button').click();
+  await expect(flash).toContainText('Account locked. Try again in');
+
+  // Jump 31 seconds into the future instead of waiting for real.
+  await page.clock.fastForward('00:31');
+  await page.getByTestId('login-button').click();
+  await expect(page).toHaveURL(/secure\.html/);
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-protected">
+        <div class="exercise-head"><h3>4. Protect the secure area and log out</h3><span class="tag easy">Beginner</span></div>
+        <p>Open the secure page directly without logging in, then log in, log out, and check you can't get back in.</p>
+        <div class="expected">
+          <p><strong>Expected:</strong> visiting <code>secure.html</code> first sends you to login with <code>You must log in to view the secure area.</code> After logging out you see <code>You logged out of the secure area.</code>, and the secure page redirects you again.</p>
+        </div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect, type Page } from '@playwright/test';
+
+// A small helper keeps the test readable when a flow is reused.
+async function logIn(page: Page) {
+  await page.getByTestId('username').fill('practice');
+  await page.getByTestId('password').fill('SuperSecret123');
+  await page.getByTestId('login-button').click();
+  await expect(page).toHaveURL(/secure\.html/);
+}
+
+test('protects the secure area and logs out', async ({ page }) => {
+  await page.goto('/secure.html');
+  await expect(page).toHaveURL(/login\.html\?reason=auth/);
+  await expect(page.getByTestId('flash')).toHaveText('You must log in to view the secure area.');
+
+  await logIn(page);
+
+  await page.getByTestId('logout').click();
+  await expect(page.getByTestId('flash')).toHaveText('You logged out of the secure area.');
+
+  // The session is gone, so the secure page bounces us back to login.
+  await page.goto('/secure.html');
+  await expect(page).toHaveURL(/reason=auth/);
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-remember">
+        <div class="exercise-head"><h3>5. Remember me</h3><span class="tag easy">Beginner</span></div>
+        <p>Log in with <em>Remember me</em> ticked, then come back to the login page.</p>
+        <div class="expected"><p><strong>Expected:</strong> the username field is already filled with <code>practice</code> and the checkbox is still ticked. Without the tick, the field is empty next time.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('remembers the username', async ({ page }) => {
+  await page.goto('/login.html');
+  await page.getByTestId('username').fill('practice');
+  await page.getByTestId('password').fill('SuperSecret123');
+  await page.getByTestId('remember').check();
+  await page.getByTestId('login-button').click();
+  await expect(page).toHaveURL(/secure\.html/);
+
+  // The username is stored in localStorage, which lives as long as
+  // this browser context, so a new visit in the same test sees it.
+  await page.goto('/login.html');
+  await expect(page.getByTestId('username')).toHaveValue('practice');
+  await expect(page.getByTestId('remember')).toBeChecked();
+});
+        </template></details>
+      </article>
     </div>
   </main>
   <footer id="site-footer"></footer>

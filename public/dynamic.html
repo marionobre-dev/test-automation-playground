@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dynamic Content Practice</title>
+  <title>Dynamic Content | Mario's Test Automation Playground</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
 </head>
@@ -11,54 +12,155 @@
   <header id="site-header"></header>
   <main>
     <h1 data-testid="page-title">Dynamic content &amp; waits</h1>
-    <p class="lead">Each box needs a different waiting strategy. Fixed sleeps will make these tests flaky.</p>
+    <p class="lead">Each exercise needs a different waiting strategy. If you reach for a fixed sleep (<code>waitForTimeout</code>), your test will either be slow or flaky. Wait for the <em>state</em> you need instead.</p>
 
-    <div class="grid">
+    <div class="exercises">
       <section class="card" data-testid="delayed-section">
-        <h2>1. Delayed element</h2>
-        <p>Appears after a random 2–5 second load.</p>
+        <div class="exercise-head"><h2>1. Delayed element</h2><span class="tag easy">Beginner</span></div>
+        <p>Click <em>Start</em>. A spinner shows for a random 2–5 seconds, then a heading appears.</p>
         <button id="start-loading" data-testid="start-loading">Start</button>
         <div id="loading" class="row hidden" style="margin-top: 12px" data-testid="loading"><div class="spinner"></div> Loading…</div>
         <h3 id="finish" class="hidden" data-testid="finish">Hello World!</h3>
+        <div class="expected"><p><strong>Expected:</strong> the spinner appears, then the <code>finish</code> heading becomes visible with the greeting and the spinner is gone. Your test must pass whether the load takes 2 or 5 seconds.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('waits for the delayed element', async ({ page }) => {
+  await page.goto('/dynamic.html');
+  await page.getByTestId('start-loading').click();
+  await expect(page.getByTestId('loading')).toBeVisible();
+
+  // expect() retries for 5 s by default, but this load can take up to 5 s
+  // plus rendering. Raise the timeout for this one assertion only.
+  const finish = page.getByTestId('finish');
+  await expect(finish).toBeVisible({ timeout: 10_000 });
+  await expect(finish).toHaveText('Hello World!');
+  await expect(page.getByTestId('loading')).toBeHidden();
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="visibility-section">
-        <h2>2. Hidden vs removed</h2>
-        <p>One element is hidden with CSS, the other is removed from the DOM.</p>
+        <div class="exercise-head"><h2>2. Hidden vs removed</h2><span class="tag easy">Beginner</span></div>
+        <p>One paragraph is hidden with CSS (still in the page), the other is removed from the DOM completely.</p>
         <div class="row">
           <button id="toggle-hidden" class="secondary small" data-testid="toggle-hidden">Toggle hidden</button>
           <button id="toggle-removed" class="secondary small" data-testid="toggle-removed">Toggle removed</button>
         </div>
         <p id="hidden-target" style="margin-top: 12px" data-testid="hidden-target">I am sometimes hidden.</p>
         <div id="removed-container"><p id="removed-target" data-testid="removed-target">I am sometimes removed.</p></div>
+        <div class="expected"><p><strong>Expected:</strong> after toggling, <code>hidden-target</code> is not visible but still exists (count 1), while <code>removed-target</code> doesn't exist at all (count 0). Toggling again brings both back.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('tells hidden and removed elements apart', async ({ page }) => {
+  await page.goto('/dynamic.html');
+  const hidden = page.getByTestId('hidden-target');
+  const removed = page.getByTestId('removed-target');
+
+  await page.getByTestId('toggle-hidden').click();
+  await page.getByTestId('toggle-removed').click();
+
+  // toBeHidden() passes for BOTH cases, so it can't tell them apart...
+  await expect(hidden).toBeHidden();
+  await expect(removed).toBeHidden();
+  // ...but counting the matches can.
+  await expect(hidden).toHaveCount(1);
+  await expect(removed).toHaveCount(0);
+
+  await page.getByTestId('toggle-hidden').click();
+  await page.getByTestId('toggle-removed').click();
+  await expect(hidden).toBeVisible();
+  await expect(removed).toBeVisible();
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="enable-section">
-        <h2>3. Enable / disable</h2>
-        <p>The input is enabled after a 2 second request.</p>
+        <div class="exercise-head"><h2>3. Enable / disable</h2><span class="tag easy">Beginner</span></div>
+        <p>The input starts disabled. Clicking the button "calls a server" for 2 seconds, then enables it.</p>
         <div class="row">
           <input type="text" id="async-input" disabled style="max-width: 200px" data-testid="async-input">
           <button id="toggle-enable" class="small" data-testid="toggle-enable">Enable</button>
         </div>
         <p id="enable-message" class="hint" data-testid="enable-message"></p>
+        <div class="expected"><p><strong>Expected:</strong> the input is disabled at first, enabled after the click (message <code>It's enabled!</code>), and you can type into it.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('types into the input once it is enabled', async ({ page }) => {
+  await page.goto('/dynamic.html');
+  const input = page.getByTestId('async-input');
+
+  await expect(input).toBeDisabled();
+  await page.getByTestId('toggle-enable').click();
+
+  // fill() would also wait for the input to become editable on its own,
+  // but asserting first makes the failure message much clearer.
+  await expect(input).toBeEnabled();
+  await expect(page.getByTestId('enable-message')).toHaveText("It's enabled!");
+
+  await input.fill('Now I can type');
+  await expect(input).toHaveValue('Now I can type');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="add-remove-section">
-        <h2>4. Add / remove elements</h2>
+        <div class="exercise-head"><h2>4. Add / remove elements</h2><span class="tag easy">Beginner</span></div>
+        <p>Each click adds a <em>Delete</em> button; clicking one removes it.</p>
         <button id="add-element" class="small" data-testid="add-element">Add element</button>
         <div id="elements" class="row" style="margin-top: 12px" data-testid="elements"></div>
+        <div class="expected"><p><strong>Expected:</strong> three clicks create three buttons (<code>added-1</code> to <code>added-3</code>); deleting the second leaves two, and <code>added-2</code> no longer exists.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('adds and removes elements', async ({ page }) => {
+  await page.goto('/dynamic.html');
+  const add = page.getByTestId('add-element');
+  // Scope the locator to the container so nothing else on the page matches.
+  const buttons = page.getByTestId('elements').getByRole('button', { name: 'Delete' });
+
+  for (let i = 0; i &lt; 3; i++) await add.click();
+  await expect(buttons).toHaveCount(3);
+
+  await page.getByTestId('added-2').click();
+  await expect(buttons).toHaveCount(2);
+  await expect(page.getByTestId('added-2')).toHaveCount(0);
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="random-id-section">
-        <h2>5. Dynamic IDs</h2>
-        <p>The button ID changes on every page load. Locate it by text or test ID.</p>
+        <div class="exercise-head"><h2>5. Dynamic IDs</h2><span class="tag easy">Beginner</span></div>
+        <p>This button gets a new random <code>id</code> on every page load, so a recorded <code>#btn-…</code> selector breaks next time.</p>
         <button id="" class="secondary" data-testid="dynamic-id-button">Click me</button>
         <p id="dynamic-id-result" class="hint" data-testid="dynamic-id-result"></p>
+        <div class="expected"><p><strong>Expected:</strong> your test clicks the button reliably on any load, and the message confirms the click with the current id. Reloading gives a different id.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('clicks a button whose id keeps changing', async ({ page }) => {
+  await page.goto('/dynamic.html');
+
+  // Locate by role + accessible name (what users see), or by test id.
+  // Never by the generated id.
+  const button = page.getByRole('button', { name: 'Click me' });
+  const firstId = await button.getAttribute('id');
+
+  await button.click();
+  await expect(page.getByTestId('dynamic-id-result')).toHaveText(`Clicked button with id "${firstId}".`);
+
+  // Prove the id really is unstable.
+  await page.reload();
+  expect(await button.getAttribute('id')).not.toBe(firstId);
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="progress-section">
-        <h2>6. Progress bar</h2>
-        <p>Stop the bar as close to 75% as you can.</p>
+        <div class="exercise-head"><h2>6. Progress bar</h2><span class="tag hard">Advanced</span></div>
+        <p>The bar gains 1% every 100 ms. Stop it at exactly 75%.</p>
         <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress" data-testid="progress"><div></div></div>
         <div class="row" style="margin-top: 10px">
           <button id="progress-start" class="small" data-testid="progress-start">Start</button>
@@ -66,30 +168,109 @@
           <span id="progress-value" data-testid="progress-value">0%</span>
         </div>
         <p id="progress-result" class="hint" data-testid="progress-result"></p>
+        <div class="expected"><p><strong>Expected:</strong> the result reads <code>Stopped at 75%. Perfect!</code> every time you run the test, not just sometimes.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('stops the progress bar at exactly 75%', async ({ page }) => {
+  // Polling the bar and clicking "fast enough" is a race you will lose
+  // on a slow machine. Instead, freeze time and move it ourselves.
+  await page.clock.install();
+  await page.goto('/dynamic.html');
+  // pauseAt() jumps a little ahead (it can't go back in time, so leave a
+  // margin for the page load) and stops the clock: no timers fire until we say so.
+  await page.clock.pauseAt(new Date(Date.now() + 10_000));
+
+  await page.getByTestId('progress-start').click();
+  // 75 ticks of 100 ms = 75%.
+  await page.clock.runFor(7_500);
+  await expect(page.getByTestId('progress')).toHaveAttribute('aria-valuenow', '75');
+
+  await page.getByTestId('progress-stop').click();
+  await expect(page.getByTestId('progress-result')).toHaveText('Stopped at 75%. Perfect!');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="text-change-section">
-        <h2>7. Text changes</h2>
-        <p>The status goes Pending → Processing → Done over about 4 seconds.</p>
+        <div class="exercise-head"><h2>7. Text changes</h2><span class="tag easy">Beginner</span></div>
+        <p>The job status goes Pending → Processing → Done over about 4 seconds.</p>
         <button id="start-job" class="small" data-testid="start-job">Start job</button>
         <p>Status: <strong id="job-status" data-testid="job-status">Idle</strong></p>
+        <div class="expected"><p><strong>Expected:</strong> your test sees all three statuses in order and finishes as soon as the status is <code>Done</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('follows the job through every status', async ({ page }) => {
+  await page.goto('/dynamic.html');
+  const status = page.getByTestId('job-status');
+
+  await page.getByTestId('start-job').click();
+  // Each assertion retries until its text shows up, so the test
+  // moves on the instant each state is reached.
+  await expect(status).toHaveText('Pending');
+  await expect(status).toHaveText('Processing');
+  await expect(status).toHaveText('Done');
+  await expect(page.getByTestId('start-job')).toBeEnabled();
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="overlay-section">
-        <h2>8. Covered button</h2>
-        <p>An overlay blocks the button for 3 seconds after the page loads. Wait until it's clickable.</p>
+        <div class="exercise-head"><h2>8. Covered button</h2><span class="tag medium">Intermediate</span></div>
+        <p>For 3 seconds after the page loads, an overlay sits on top of the button and swallows clicks.</p>
         <div style="position: relative; display: inline-block">
           <button id="covered-button" data-testid="covered-button">Click when ready</button>
           <div id="overlay" style="position: absolute; inset: -6px; background: var(--surface-2); opacity: 0.9; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem" data-testid="overlay">Please wait…</div>
         </div>
         <p id="covered-result" class="hint" data-testid="covered-result"></p>
+        <div class="expected"><p><strong>Expected:</strong> the click lands on the real button (message <code>Button clicked!</code>), not on the overlay, without forcing it.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('clicks the button once the overlay is gone', async ({ page }) => {
+  await page.goto('/dynamic.html');
+
+  // Option A: just click. Before clicking, Playwright checks the element
+  // would actually receive the click, and retries while the overlay
+  // is on top of it.
+  await page.getByTestId('covered-button').click();
+
+  // Option B (more explicit): wait for the overlay to go first.
+  // await expect(page.getByTestId('overlay')).toBeHidden();
+
+  // Don't use click({ force: true }): it skips those checks and clicks
+  // the overlay, so the test "passes" without doing what a user does.
+  await expect(page.getByTestId('covered-result')).toHaveText('Button clicked!');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="load-more-section">
-        <h2>9. Load more</h2>
-        <p>Each click loads 5 more items after 1 second, up to 20.</p>
+        <div class="exercise-head"><h2>9. Load more</h2><span class="tag medium">Intermediate</span></div>
+        <p>Each click loads 5 more items after about a second, up to 20 in total.</p>
         <ul id="items" data-testid="items"></ul>
         <button id="load-more" class="small" data-testid="load-more">Load more</button>
+        <div class="expected"><p><strong>Expected:</strong> after four batches there are exactly 20 items, and the button is disabled with the text <code>No more items</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('loads every batch', async ({ page }) => {
+  await page.goto('/dynamic.html');
+  const loadMore = page.getByTestId('load-more');
+  const items = page.getByTestId('items').getByRole('listitem');
+
+  for (let batch = 1; batch &lt;= 4; batch++) {
+    // click() waits for the button to be enabled again after the last batch.
+    await loadMore.click();
+    // Wait for the result (the item count), never for a fixed time.
+    await expect(items).toHaveCount(batch * 5);
+  }
+
+  await expect(loadMore).toBeDisabled();
+  await expect(loadMore).toHaveText('No more items');
+});
+        </template></details>
       </section>
     </div>
   </main>

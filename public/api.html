@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>REST API Practice</title>
+  <title>REST API | Mario's Test Automation Playground</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
 </head>
@@ -64,6 +65,156 @@
       <p style="margin-bottom: 4px">Status: <strong id="res-status" data-testid="res-status">–</strong> <span class="hint" id="res-time" data-testid="res-time"></span></p>
       <pre id="res-body" class="output" data-testid="res-body"></pre>
     </form>
+
+    <h2 class="exercises-intro">Exercises</h2>
+    <p class="hint">These use Playwright's built-in <code>request</code> fixture, so no browser is opened. With <code>baseURL</code> set in your config (see the home page), paths like <code>/api/users</code> work as-is.</p>
+    <div class="exercises" data-testid="exercises">
+      <article class="card" data-testid="exercise-crud">
+        <div class="exercise-head"><h3>1. Create, read, update, delete</h3><span class="tag medium">Intermediate</span></div>
+        <p>Log in for a token, then take a user through its whole life cycle in your own sandbox.</p>
+        <div class="expected"><p><strong>Expected:</strong> login returns <code>200</code> with a token; creating returns <code>201</code> and the new user with an <code>id</code>; reading it back returns the same data; PATCH changes only the job; DELETE returns <code>204</code>; reading it again returns <code>404</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+// A unique sandbox per run: your data never collides with anyone else's.
+const sandbox = `pw-${Date.now()}`;
+
+test('takes a user through create, read, update and delete', async ({ request }) => {
+  const headers = { 'X-Sandbox-Id': sandbox };
+
+  // "data" is sent as JSON, with the Content-Type header set for you.
+  const login = await request.post('/api/auth/login', {
+    headers,
+    data: { username: 'practice', password: 'SuperSecret123' },
+  });
+  expect(login.status()).toBe(200);
+  const { token } = await login.json();
+  const auth = { ...headers, Authorization: `Bearer ${token}` };
+
+  const created = await request.post('/api/users', {
+    headers: auth,
+    data: { name: 'Jane Doe', email: 'jane.doe@example.com', job: 'SDET' },
+  });
+  expect(created.status()).toBe(201);
+  const user = await created.json();
+  expect(user).toMatchObject({ name: 'Jane Doe', email: 'jane.doe@example.com', job: 'SDET' });
+  expect(user.id).toEqual(expect.any(Number));
+
+  const read = await request.get(`/api/users/${user.id}`, { headers });
+  expect(await read.json()).toEqual(user);
+
+  const patched = await request.patch(`/api/users/${user.id}`, { headers: auth, data: { job: 'Lead SDET' } });
+  expect(await patched.json()).toMatchObject({ name: 'Jane Doe', job: 'Lead SDET' });
+
+  const deleted = await request.delete(`/api/users/${user.id}`, { headers: auth });
+  expect(deleted.status()).toBe(204);
+
+  const gone = await request.get(`/api/users/${user.id}`, { headers });
+  expect(gone.status()).toBe(404);
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-errors">
+        <div class="exercise-head"><h3>2. Error responses</h3><span class="tag medium">Intermediate</span></div>
+        <p>Check that the API refuses bad requests with the right status code and a useful body.</p>
+        <div class="expected"><p><strong>Expected:</strong> creating a user without a token → <code>401</code>; with an invalid email and a one-letter name → <code>422</code> with a message per field in <code>fields</code>; creating the same email twice → <code>409</code>; a wrong password at login → <code>401</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect, type APIRequestContext } from '@playwright/test';
+
+const headers = { 'X-Sandbox-Id': `pw-errors-${Date.now()}` };
+
+async function authHeaders(request: APIRequestContext) {
+  const res = await request.post('/api/auth/login', {
+    headers,
+    data: { username: 'practice', password: 'SuperSecret123' },
+  });
+  const { token } = await res.json();
+  return { ...headers, Authorization: `Bearer ${token}` };
+}
+
+test('rejects bad requests with clear errors', async ({ request }) => {
+  const noToken = await request.post('/api/users', { headers, data: { name: 'Jo', email: 'jo@example.com' } });
+  expect(noToken.status()).toBe(401);
+
+  const badLogin = await request.post('/api/auth/login', { headers, data: { username: 'practice', password: 'nope' } });
+  expect(badLogin.status()).toBe(401);
+
+  const auth = await authHeaders(request);
+
+  const invalid = await request.post('/api/users', { headers: auth, data: { name: 'J', email: 'not-an-email' } });
+  expect(invalid.status()).toBe(422);
+  // Check the shape of the body, not just the code: clients rely on it.
+  expect(await invalid.json()).toMatchObject({
+    error: 'Validation failed.',
+    fields: { name: expect.any(String), email: expect.any(String) },
+  });
+
+  const user = { name: 'Twin', email: `twin-${Date.now()}@example.com` };
+  expect((await request.post('/api/users', { headers: auth, data: user })).status()).toBe(201);
+  const duplicate = await request.post('/api/users', { headers: auth, data: user });
+  expect(duplicate.status()).toBe(409);
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-paging-api">
+        <div class="exercise-head"><h3>3. Pagination and search</h3><span class="tag medium">Intermediate</span></div>
+        <p>Read the user list a page at a time, then search it.</p>
+        <div class="expected"><p><strong>Expected:</strong> with <code>limit=5</code> a fresh sandbox reports <code>total: 12</code> and <code>totalPages: 3</code>; walking all pages returns 12 unique users; every result for <code>search=qa</code> contains "qa" in its name, email or job.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('pages through and searches the users', async ({ request }) => {
+  // A brand-new sandbox always starts with the same 12 seed users.
+  const headers = { 'X-Sandbox-Id': `pw-paging-${Date.now()}` };
+
+  const first = await (await request.get('/api/users', { headers, params: { limit: 5 } })).json();
+  expect(first).toMatchObject({ page: 1, limit: 5, total: 12, totalPages: 3 });
+
+  const ids: number[] = [];
+  for (let page = 1; page &lt;= first.totalPages; page++) {
+    // "params" builds the query string for you: ?page=2&amp;limit=5
+    const res = await request.get('/api/users', { headers, params: { page, limit: 5 } });
+    ids.push(...(await res.json()).data.map((u: { id: number }) => u.id));
+  }
+  expect(new Set(ids).size).toBe(12);
+
+  const search = await (await request.get('/api/users', { headers, params: { search: 'qa' } })).json();
+  expect(search.total).toBeGreaterThan(0);
+  for (const u of search.data) {
+    expect(`${u.name} ${u.email} ${u.job}`.toLowerCase()).toContain('qa');
+  }
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-timeouts">
+        <div class="exercise-head"><h3>4. Status codes and timeouts</h3><span class="tag hard">Advanced</span></div>
+        <p>Use <code>/api/status/{code}</code> and <code>/api/delay/{seconds}</code> to test how your client handles failures and slow servers.</p>
+        <div class="expected"><p><strong>Expected:</strong> each status code you ask for comes back unchanged; a 3-second delay with a 1-second client timeout fails with a timeout error; with a 5-second timeout the same request succeeds.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+for (const code of [200, 404, 418, 500, 503]) {
+  test(`returns status ${code}`, async ({ request }) => {
+    const res = await request.get(`/api/status/${code}`);
+    expect(res.status()).toBe(code);
+    // ok() is true only for 2xx codes.
+    expect(res.ok()).toBe(code === 200);
+  });
+}
+
+test('times out on a slow response', async ({ request }) => {
+  // A rejected promise is asserted with "rejects", not try/catch.
+  await expect(request.get('/api/delay/3', { timeout: 1_000 })).rejects.toThrow(/Timeout/);
+
+  const slow = await request.get('/api/delay/3', { timeout: 5_000 });
+  expect(await slow.json()).toEqual({ delayedSeconds: 3 });
+});
+        </template></details>
+      </article>
+    </div>
   </main>
   <footer id="site-footer"></footer>
   <script src="assets/app.js"></script>

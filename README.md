@@ -1,6 +1,8 @@
-# Test Automation Playground
+# Mario's Test Automation Playground
 
 A free website built for practising test automation. Point Selenium, Playwright, Cypress, WebdriverIO, Postman, REST Assured or any other tool at it and work through realistic scenarios, from a first login test to full end-to-end and API suites.
+
+Every practice page lists its exercises, each with a difficulty tag (green = beginner, amber = intermediate, red = advanced), an **Expected** box describing exactly what your test should verify, and a **Show me how** button with a commented TypeScript + Playwright solution. Solutions are kept out of the page until opened, so their text never interferes with your locators.
 
 **Live site:** https://testautomation.marionobre.com/
 
@@ -118,7 +120,8 @@ public/                 the website (deployed as-is)
   *.html                one page per practice area
   assets/style.css      shared styles and light/dark colour tokens
   assets/theme.js       applies the saved theme before the page draws
-  assets/app.js         shared header, footer and helpers
+  assets/app.js         shared header, footer, helpers and "Show me how" code rendering
+  assets/favicon.svg    site icon
   api/index.php         REST API router (PHP 7.4+)
   api/.htaccess         routes /api/* to index.php and blocks the data folder
 scripts/serve.ps1       local preview server

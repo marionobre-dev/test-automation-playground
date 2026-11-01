@@ -3,53 +3,257 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Test Automation Playground</title>
-  <meta name="description" content="A free playground for practising Selenium, Playwright, Cypress and API test automation.">
+  <title>Mario's Test Automation Playground</title>
+  <meta name="description" content="A free playground for practising Selenium, Playwright, Cypress and API test automation, with guided exercises and worked Playwright solutions.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
 </head>
 <body>
   <header id="site-header"></header>
   <main>
-    <h1 data-testid="page-title">Test Automation Playground</h1>
-    <p class="lead">Practise UI and API automation with Selenium, Playwright, Cypress, WebdriverIO, Postman or anything else. Every element you need has a stable <code>id</code> or <code>data-testid</code>.</p>
+    <h1 data-testid="page-title">Mario's Test Automation Playground</h1>
+    <p class="lead">A safe place to practise writing automated tests against a real website. Nothing here can break, nothing needs an account, and every page is built around exercises you can automate with Playwright, Selenium, Cypress, WebdriverIO, Postman or any other tool.</p>
 
-    <div class="grid" data-testid="practice-areas">
-      <a class="card" href="login.html" data-testid="card-login">
-        <h2>Login &amp; secure area</h2>
-        <p>Valid and invalid logins, error messages, session, logout, account lockout.</p>
-        <span class="badge">Beginner</span>
-      </a>
-      <a class="card" href="forms.html" data-testid="card-forms">
-        <h2>Forms</h2>
-        <p>Every input type, client-side validation, file upload and a result summary.</p>
-        <span class="badge">Beginner</span>
-      </a>
-      <a class="card" href="tables.html" data-testid="card-tables">
-        <h2>Tables</h2>
-        <p>Sort, filter, paginate, edit and delete rows. Great for data-driven checks.</p>
-        <span class="badge">Intermediate</span>
-      </a>
-      <a class="card" href="dynamic.html" data-testid="card-dynamic">
-        <h2>Dynamic content &amp; waits</h2>
-        <p>Delayed elements, spinners, random IDs, progress bars, stale elements.</p>
-        <span class="badge">Intermediate</span>
-      </a>
-      <a class="card" href="interactions.html" data-testid="card-interactions">
-        <h2>Interactions</h2>
-        <p>Alerts, modals, drag &amp; drop, hover, right/double click, keys, iframes, tabs, shadow DOM.</p>
-        <span class="badge">Advanced</span>
-      </a>
-      <a class="card" href="shop.html" data-testid="card-shop">
-        <h2>Mini shop (end-to-end)</h2>
-        <p>Search products, add to cart, change quantities, check out with a promo code.</p>
-        <span class="badge">E2E</span>
-      </a>
-      <a class="card" href="api.html" data-testid="card-api">
-        <h2>REST API</h2>
-        <p>CRUD users, token auth, status codes and slow responses for API testing.</p>
-        <span class="badge">API</span>
-      </a>
+    <section class="card stack" style="margin-bottom: 28px" data-testid="how-it-works">
+      <h2>How it works</h2>
+      <ol style="margin: 0; padding-left: 20px">
+        <li><strong>Pick a practice area</strong> below. Start with the green ones if you're new to automation.</li>
+        <li><strong>Read the exercise.</strong> Every page lists its exercises with an <em>Expected</em> box telling you exactly what your test should check.</li>
+        <li><strong>Write the test yourself</strong> in your tool of choice.</li>
+        <li><strong>Stuck, or want to compare?</strong> Press <em>Show me how</em> for a commented TypeScript + Playwright solution.</li>
+      </ol>
+      <p class="hint" style="margin-bottom: 0">Every interactive element has a stable <code>data-testid</code>, which Playwright's <code>getByTestId()</code> uses by default. Exercise descriptions repeat some on-screen text, so prefer test IDs, or scope text locators to the practice area, to avoid matching the instructions.</p>
+    </section>
+
+    <section class="card stack" style="margin-bottom: 28px" data-testid="getting-started">
+      <h2>Set up Playwright in two minutes</h2>
+      <p style="margin: 0">Create a project, then point it at this site so tests can use short paths like <code>page.goto('/login.html')</code>:</p>
+<pre class="snippet"><code>npm init playwright@latest</code></pre>
+<pre class="snippet"><code>
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    baseURL: 'https://testautomation.marionobre.com',
+  },
+});
+</code></pre>
+      <p style="margin: 0">Run your tests with <code>npx playwright test</code>, or <code>npx playwright test --ui</code> to watch them step by step.</p>
+    </section>
+
+    <h2 style="margin-bottom: 6px">Practice areas</h2>
+    <div class="legend" data-testid="legend">
+      <span><span class="tag easy">Beginner</span> first steps, one concept at a time</span>
+      <span><span class="tag medium">Intermediate</span> waits, data and multi-step flows</span>
+      <span><span class="tag hard">Advanced</span> browser-level tricks</span>
+      <span><span class="tag kind">UI</span> <span class="tag kind">E2E</span> <span class="tag kind">API</span> type of testing</span>
+    </div>
+
+    <div class="area-list" data-testid="practice-areas">
+      <article class="card" data-testid="card-login">
+        <div class="area-head">
+          <h2>Login &amp; secure area</h2>
+          <span class="tags"><span class="tag easy">Beginner</span><span class="tag kind">UI</span></span>
+        </div>
+        <p>A classic login form with good and bad credentials, error messages, an account lockout, a protected page and logout. The best place to write your very first test.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you'll practise</h3>
+            <ul>
+              <li>Filling inputs and clicking buttons</li>
+              <li>Asserting text, URLs and redirects</li>
+              <li>Data-driven tests over several inputs</li>
+              <li>Controlling time to test a 30-second lockout instantly</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scenarios to try</h3>
+            <ol>
+              <li>Log in as <code>practice</code> / <code>SuperSecret123</code> and land on the secure area</li>
+              <li>Check the error for a wrong username, a wrong password and empty fields</li>
+              <li>Fail three times and prove the account locks, then unlocks</li>
+              <li>Open the secure page without logging in, then log out</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="login.html" data-testid="start-login">Start practising →</a></p>
+      </article>
+
+      <article class="card" data-testid="card-forms">
+        <div class="area-head">
+          <h2>Forms</h2>
+          <span class="tags"><span class="tag easy">Beginner</span><span class="tag kind">UI</span></span>
+        </div>
+        <p>A registration form with every common input type and client-side validation. After a valid submit, the page shows everything you entered as JSON, so you can check your test filled each field correctly.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you'll practise</h3>
+            <ul>
+              <li>Text, select, multi-select, radio, checkbox, date, range and colour inputs</li>
+              <li>File uploads without touching the disk</li>
+              <li>Asserting validation messages and focus</li>
+              <li>Boundary values (age 17 vs 18)</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scenarios to try</h3>
+            <ol>
+              <li>Submit the empty form and check every error</li>
+              <li>Fill every field and compare the JSON result</li>
+              <li>Find the edge of each validation rule</li>
+              <li>Upload a file that is too large</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="forms.html" data-testid="start-forms">Start practising →</a></p>
+      </article>
+
+      <article class="card" data-testid="card-tables">
+        <div class="area-head">
+          <h2>Tables</h2>
+          <span class="tags"><span class="tag medium">Intermediate</span><span class="tag kind">UI</span></span>
+        </div>
+        <p>A 47-row employee table with sorting, filtering, paging, inline editing and deleting. The data is the same on every visit, so your assertions stay stable.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you'll practise</h3>
+            <ul>
+              <li>Reading many cells into arrays</li>
+              <li>Checking sort order with real data</li>
+              <li>Looping through pages</li>
+              <li>Handling a browser <code>confirm()</code> dialog</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scenarios to try</h3>
+            <ol>
+              <li>Sort by salary and prove the order is correct</li>
+              <li>Filter by department and check the total</li>
+              <li>Collect every ID across all pages</li>
+              <li>Edit a salary, then delete a row</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="tables.html" data-testid="start-tables">Start practising →</a></p>
+      </article>
+
+      <article class="card" data-testid="card-dynamic">
+        <div class="area-head">
+          <h2>Dynamic content &amp; waits</h2>
+          <span class="tags"><span class="tag medium">Intermediate</span><span class="tag kind">UI</span></span>
+        </div>
+        <p>Nine small puzzles where things happen <em>later</em>: random delays, spinners, disabled inputs, changing IDs, overlays and "load more". They are the main cause of flaky tests in real projects.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you'll practise</h3>
+            <ul>
+              <li>Waiting for state instead of sleeping</li>
+              <li>Visible vs hidden vs removed elements</li>
+              <li>Locating elements without a stable <code>id</code></li>
+              <li>Freezing the page clock to control timers</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scenarios to try</h3>
+            <ol>
+              <li>Wait for an element that appears after 2–5 seconds</li>
+              <li>Stop a progress bar at exactly 75%</li>
+              <li>Click a button that is covered for 3 seconds</li>
+              <li>Load all 20 items, batch by batch</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="dynamic.html" data-testid="start-dynamic">Start practising →</a></p>
+      </article>
+
+      <article class="card" data-testid="card-interactions">
+        <div class="area-head">
+          <h2>Interactions</h2>
+          <span class="tags"><span class="tag hard">Advanced</span><span class="tag kind">UI</span></span>
+        </div>
+        <p>Everything that isn't a simple click: browser dialogs, a modal, drag and drop, hover menus, right and double clicks, keyboard shortcuts, an iframe, new tabs and a shadow DOM component.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you'll practise</h3>
+            <ul>
+              <li>Accepting, dismissing and answering dialogs</li>
+              <li>Mouse actions and drag and drop</li>
+              <li>Working inside frames, tabs and popups</li>
+              <li>Reaching into a shadow root</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scenarios to try</h3>
+            <ol>
+              <li>Answer the <code>prompt()</code> with your name</li>
+              <li>Drag all three tools into the "Selected" box</li>
+              <li>Send a message from inside the iframe</li>
+              <li>Follow a link into a new tab and back</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="interactions.html" data-testid="start-interactions">Start practising →</a></p>
+      </article>
+
+      <article class="card" data-testid="card-shop">
+        <div class="area-head">
+          <h2>Mini shop</h2>
+          <span class="tags"><span class="tag medium">Intermediate</span><span class="tag kind">E2E</span></span>
+        </div>
+        <p>A small online shop that ties everything together in one journey: search, cart, stock limits, promo codes and a checkout that ends with an order number. The cart survives page reloads.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you'll practise</h3>
+            <ul>
+              <li>Writing a full user journey as one test</li>
+              <li>Checking money calculations</li>
+              <li>Business rules (stock, discounts, shipping)</li>
+              <li>Reusing steps with helper functions</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scenarios to try</h3>
+            <ol>
+              <li>Search and filter the catalogue</li>
+              <li>Fill a cart and verify subtotal, discount and total</li>
+              <li>Try to buy more than the stock allows</li>
+              <li>Complete a purchase with express shipping</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="shop.html" data-testid="start-shop">Start practising →</a></p>
+      </article>
+
+      <article class="card" data-testid="card-api">
+        <div class="area-head">
+          <h2>REST API</h2>
+          <span class="tags"><span class="tag medium">Intermediate</span><span class="tag kind">API</span></span>
+        </div>
+        <p>A real JSON API with login tokens, create/read/update/delete users, validation errors, any status code you ask for and deliberately slow responses. Send an <code>X-Sandbox-Id</code> header to get your own private data.</p>
+        <div class="area-cols">
+          <div>
+            <h3>What you'll practise</h3>
+            <ul>
+              <li>API tests with Playwright's <code>request</code></li>
+              <li>Bearer token authentication</li>
+              <li>Asserting status codes and JSON bodies</li>
+              <li>Timeouts and error handling</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scenarios to try</h3>
+            <ol>
+              <li>Create, read, update and delete a user</li>
+              <li>Check the 401, 409 and 422 error responses</li>
+              <li>Page through and search the user list</li>
+              <li>Make a request time out on purpose</li>
+            </ol>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0"><a class="btn" href="api.html" data-testid="start-api">Start practising →</a></p>
+      </article>
     </div>
   </main>
   <footer id="site-footer"></footer>

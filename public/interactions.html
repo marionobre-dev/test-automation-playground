@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Interactions Practice</title>
+  <title>Interactions | Mario's Test Automation Playground</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
 </head>
@@ -11,22 +12,49 @@
   <header id="site-header"></header>
   <main>
     <h1 data-testid="page-title">Interactions</h1>
-    <p class="lead">Browser dialogs, mouse and keyboard actions, frames, windows and shadow DOM.</p>
+    <p class="lead">Browser dialogs, mouse and keyboard actions, frames, windows and shadow DOM: the parts of a page that a plain <code>click()</code> and <code>fill()</code> can't handle on their own.</p>
 
-    <div class="grid">
+    <div class="exercises">
       <section class="card" data-testid="alerts-section">
-        <h2>JavaScript dialogs</h2>
+        <div class="exercise-head"><h2>1. JavaScript dialogs</h2><span class="tag medium">Intermediate</span></div>
+        <p>These buttons open the browser's own <code>alert</code>, <code>confirm</code> and <code>prompt</code> boxes, which aren't part of the page.</p>
         <div class="row">
           <button id="js-alert" class="small" data-testid="js-alert">Alert</button>
           <button id="js-confirm" class="small" data-testid="js-confirm">Confirm</button>
           <button id="js-prompt" class="small" data-testid="js-prompt">Prompt</button>
         </div>
         <p>Result: <span id="dialog-result" data-testid="dialog-result"></span></p>
+        <div class="expected"><p><strong>Expected:</strong> accepting the alert shows <code>You clicked OK on the alert</code>; cancelling the confirm shows <code>You clicked: Cancel</code>; answering the prompt with <code>Mario</code> shows <code>You entered: Mario</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('handles alert, confirm and prompt', async ({ page }) => {
+  await page.goto('/interactions.html');
+  const result = page.getByTestId('dialog-result');
+
+  // Register the handler BEFORE the click. page.once() handles one dialog only.
+  // With no handler at all, Playwright dismisses every dialog automatically.
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByTestId('js-alert').click();
+  await expect(result).toHaveText('You clicked OK on the alert');
+
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByTestId('js-confirm').click();
+  await expect(result).toHaveText('You clicked: Cancel');
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toBe('What is your name?');
+    await dialog.accept('Mario'); // the text typed into the prompt
+  });
+  await page.getByTestId('js-prompt').click();
+  await expect(result).toHaveText('You entered: Mario');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="modal-section">
-        <h2>Modal dialog</h2>
-        <p>A real in-page modal, not a browser dialog.</p>
+        <div class="exercise-head"><h2>2. Modal dialog</h2><span class="tag easy">Beginner</span></div>
+        <p>A real in-page modal (an HTML <code>&lt;dialog&gt;</code>), not a browser dialog.</p>
         <button id="open-modal" class="small" data-testid="open-modal">Open modal</button>
         <p>Choice: <span id="modal-result" data-testid="modal-result"></span></p>
         <dialog id="modal" data-testid="modal">
@@ -37,10 +65,28 @@
             <button id="modal-cancel" class="small secondary" data-testid="modal-cancel">No thanks</button>
           </div>
         </dialog>
+        <div class="expected"><p><strong>Expected:</strong> the modal opens with its title, clicking <em>Subscribe</em> closes it, and the choice reads <code>Subscribed</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('subscribes through the modal', async ({ page }) => {
+  await page.goto('/interactions.html');
+  await page.getByTestId('open-modal').click();
+
+  // A <dialog> has the "dialog" role, so we can scope locators to it.
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByRole('heading')).toHaveText('Subscribe to updates?');
+
+  await modal.getByRole('button', { name: 'Subscribe' }).click();
+  await expect(modal).toBeHidden();
+  await expect(page.getByTestId('modal-result')).toHaveText('Subscribed');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="drag-section">
-        <h2>Drag and drop</h2>
+        <div class="exercise-head"><h2>3. Drag and drop</h2><span class="tag medium">Intermediate</span></div>
         <p>Move the tools into the "Selected" box.</p>
         <div class="drop-zone" id="source-zone" data-testid="source-zone">
           <div class="draggable" draggable="true" id="drag-selenium" data-testid="drag-selenium">Selenium</div>
@@ -50,10 +96,30 @@
         <p style="margin: 8px 0 4px"><strong>Selected</strong></p>
         <div class="drop-zone" id="target-zone" data-testid="target-zone"></div>
         <p class="hint">Selected: <span id="drop-result" data-testid="drop-result">none</span></p>
+        <div class="expected"><p><strong>Expected:</strong> after dragging all three, the source box is empty, the Selected box holds 3 items, and the summary reads <code>Selenium, Playwright, Cypress</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('drags every tool into Selected', async ({ page }) => {
+  await page.goto('/interactions.html');
+  const target = page.getByTestId('target-zone');
+
+  // dragTo() presses the mouse on the source, moves it over the target
+  // and releases, which fires the page's HTML5 drag-and-drop events.
+  for (const tool of ['selenium', 'playwright', 'cypress']) {
+    await page.getByTestId(`drag-${tool}`).dragTo(target);
+  }
+
+  await expect(page.getByTestId('source-zone').locator('.draggable')).toHaveCount(0);
+  await expect(target.locator('.draggable')).toHaveCount(3);
+  await expect(page.getByTestId('drop-result')).toHaveText('Selenium, Playwright, Cypress');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="mouse-section">
-        <h2>Mouse actions</h2>
+        <div class="exercise-head"><h2>4. Mouse actions</h2><span class="tag medium">Intermediate</span></div>
+        <p>A menu that only appears on hover, a button that needs a double-click, and a custom right-click menu.</p>
         <div class="row">
           <div class="hover-menu" data-testid="hover-menu">
             <button class="small secondary" id="hover-trigger" data-testid="hover-trigger">Hover me ▾</button>
@@ -67,35 +133,145 @@
         </div>
         <div class="context-target" id="context-target" style="margin-top: 12px" data-testid="context-target">Right-click here</div>
         <p>Last action: <span id="mouse-result" data-testid="mouse-result"></span></p>
+        <div class="expected"><p><strong>Expected:</strong> choosing <em>Settings</em> from the hover menu shows <code>Menu: Settings</code>; the double-click shows <code>Double click</code>; right-click → <em>Rename</em> shows <code>Context menu: Rename</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('hovers, double-clicks and right-clicks', async ({ page }) => {
+  await page.goto('/interactions.html');
+  const result = page.getByTestId('mouse-result');
+
+  // The menu items are invisible until hovered, so hover first.
+  await page.getByTestId('hover-trigger').hover();
+  await page.getByTestId('menu-settings').click();
+  await expect(result).toHaveText('Menu: Settings');
+
+  await page.getByTestId('double-click').dblclick();
+  await expect(result).toHaveText('Double click');
+
+  await page.getByTestId('context-target').click({ button: 'right' });
+  await expect(page.getByTestId('context-menu')).toBeVisible();
+  await page.getByTestId('ctx-rename').click();
+  await expect(result).toHaveText('Context menu: Rename');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="keys-section">
-        <h2>Keyboard</h2>
+        <div class="exercise-head"><h2>5. Keyboard</h2><span class="tag easy">Beginner</span></div>
         <label for="key-input">Press any key in this field</label>
-        <input type="text" id="key-input" data-testid="key-input">
+        <input type="text" id="key-input" style="max-width: 320px" data-testid="key-input">
         <p>You pressed: <strong id="key-result" data-testid="key-result"></strong></p>
-        <p class="hint">Try Enter, Escape, Tab, arrows, or Ctrl+A.</p>
+        <div class="expected"><p><strong>Expected:</strong> pressing Enter shows <code>Enter</code>, Escape shows <code>Escape</code>, and Ctrl+A shows <code>Ctrl+a</code> (modifiers come first).</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+const keys = [
+  { press: 'Enter', shown: 'Enter' },
+  { press: 'Escape', shown: 'Escape' },
+  { press: 'Control+a', shown: 'Ctrl+a' },
+  { press: 'Shift+ArrowLeft', shown: 'Shift+ArrowLeft' },
+];
+
+test('reports key presses', async ({ page }) => {
+  await page.goto('/interactions.html');
+  const input = page.getByTestId('key-input');
+
+  for (const key of keys) {
+    // locator.press() focuses the element first, then sends the key.
+    // Combine keys with "+"; names follow KeyboardEvent.key values.
+    await input.press(key.press);
+    await expect(page.getByTestId('key-result')).toHaveText(key.shown);
+  }
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="frames-section">
-        <h2>iframe</h2>
-        <p>Switch into the frame to fill its form.</p>
+        <div class="exercise-head"><h2>6. iframe</h2><span class="tag medium">Intermediate</span></div>
+        <p>The form below lives in a separate document inside an iframe.</p>
         <iframe src="frame.html" id="practice-frame" name="practice-frame" title="Practice frame" style="width: 100%; height: 170px; border: 1px solid var(--border); border-radius: 6px" data-testid="practice-frame"></iframe>
         <p>Message from frame: <span id="frame-result" data-testid="frame-result"></span></p>
+        <div class="expected"><p><strong>Expected:</strong> sending <code>Hello from Playwright</code> shows <code>Sent: Hello from Playwright</code> inside the frame, and the same message appears on the main page.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('sends a message from inside the iframe', async ({ page }) => {
+  await page.goto('/interactions.html');
+
+  // contentFrame() turns the iframe element into a locator scope:
+  // everything after it searches inside the frame's document.
+  const frame = page.getByTestId('practice-frame').contentFrame();
+  await frame.getByTestId('frame-input').fill('Hello from Playwright');
+  await frame.getByTestId('frame-submit').click();
+  await expect(frame.getByTestId('frame-output')).toHaveText('Sent: Hello from Playwright');
+
+  // Back on the main page: no "switching back" needed, just use page.
+  await expect(page.getByTestId('frame-result')).toHaveText('Hello from Playwright');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="windows-section">
-        <h2>Tabs &amp; windows</h2>
+        <div class="exercise-head"><h2>7. Tabs &amp; windows</h2><span class="tag hard">Advanced</span></div>
         <div class="row">
           <a href="frame.html?standalone=1" target="_blank" id="new-tab-link" data-testid="new-tab-link">Open in new tab</a>
           <button id="new-window" class="small secondary" data-testid="new-window">Open popup window</button>
         </div>
+        <div class="expected"><p><strong>Expected:</strong> both open a new page whose heading is <code>Inside the frame</code>. Your test works in the new page, closes it, and carries on in the original one.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('works with a new tab and a popup', async ({ page }) => {
+  await page.goto('/interactions.html');
+
+  // Start waiting for the new page BEFORE clicking, then await both together.
+  // Links with target="_blank" and window.open() both fire "popup".
+  const [newTab] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.getByTestId('new-tab-link').click(),
+  ]);
+  await expect(newTab.getByTestId('frame-heading')).toHaveText('Inside the frame');
+  await newTab.close();
+
+  const [popup] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.getByTestId('new-window').click(),
+  ]);
+  await expect(popup).toHaveURL(/frame\.html\?standalone=1/);
+  await popup.close();
+
+  // The original page is untouched and still usable.
+  await expect(page.getByTestId('page-title')).toHaveText('Interactions');
+});
+        </template></details>
       </section>
 
       <section class="card" data-testid="shadow-section">
-        <h2>Shadow DOM</h2>
-        <p>The input and button below live inside an open shadow root.</p>
+        <div class="exercise-head"><h2>8. Shadow DOM</h2><span class="tag hard">Advanced</span></div>
+        <p>The input and button below live inside an open shadow root, hidden from <code>document.querySelector</code>.</p>
         <shadow-greeting id="shadow-host" data-testid="shadow-host"></shadow-greeting>
+        <div class="expected"><p><strong>Expected:</strong> typing <code>Mario</code> and pressing <em>Greet</em> shows <code>Hello, Mario!</code>; with an empty name it shows <code>Hello, stranger!</code></p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('greets through the shadow DOM', async ({ page }) => {
+  await page.goto('/interactions.html');
+
+  // Playwright's locators (CSS, test id, role, text) pierce open shadow
+  // roots automatically, so this looks like any other test.
+  // XPath is the exception: it cannot see inside shadow roots.
+  const greet = page.getByTestId('shadow-button');
+  const output = page.getByTestId('shadow-output');
+
+  await greet.click();
+  await expect(output).toHaveText('Hello, stranger!');
+
+  await page.getByTestId('shadow-input').fill('Mario');
+  await greet.click();
+  await expect(output).toHaveText('Hello, Mario!');
+});
+        </template></details>
       </section>
     </div>
 

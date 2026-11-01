@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Practice Shop</title>
+  <title>Shop | Mario's Test Automation Playground</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
   <style>
@@ -90,6 +91,175 @@
         <button id="continue-shopping" data-testid="continue-shopping">Continue shopping</button>
       </div>
     </section>
+
+    <h2 class="exercises-intro">Exercises</h2>
+    <p class="hint">Product cards carry <code>data-product-id</code>, which is handy for counting results without matching the testids inside each card.</p>
+    <div class="exercises" data-testid="exercises">
+      <article class="card" data-testid="exercise-catalogue">
+        <div class="exercise-head"><h3>1. Search, filter and sort</h3><span class="tag easy">Beginner</span></div>
+        <p>Use the search box, the category filter and the sort order together.</p>
+        <div class="expected"><p><strong>Expected:</strong> searching <code>keyboard</code> leaves 1 product; the <em>Books</em> category has 2; sorting all products by price (low to high) puts the €19.99 T-shirt first; a search with no matches shows <code>No products match your search.</code></p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('searches, filters and sorts the catalogue', async ({ page }) => {
+  await page.goto('/shop.html');
+  // One locator for "every product card". It re-queries the page on each use,
+  // so it always reflects the current search results.
+  const products = page.locator('[data-product-id]');
+
+  // The list filters as you type; toHaveCount() waits for it to settle.
+  await page.getByTestId('search').fill('keyboard');
+  await expect(products).toHaveCount(1);
+  // Chaining scopes the search to inside the matching card.
+  await expect(products.getByTestId('product-name')).toHaveText('Mechanical Keyboard');
+
+  await page.getByTestId('search').clear();
+  await page.getByTestId('category').selectOption('Books');
+  await expect(products).toHaveCount(2);
+
+  // '' is the value of the "All categories" option.
+  await page.getByTestId('category').selectOption('');
+  await page.getByTestId('sort').selectOption('price-asc');
+  await expect(products.first().getByTestId('product-price')).toHaveText('€19.99');
+
+  // Always test the empty state too.
+  await page.getByTestId('search').fill('unicorn');
+  await expect(products).toHaveCount(0);
+  await expect(page.getByTestId('no-products')).toBeVisible();
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-cart-math">
+        <div class="exercise-head"><h3>2. Cart totals and promo codes</h3><span class="tag medium">Intermediate</span></div>
+        <p>Add one Mechanical Keyboard (€89.90) and two copies of Clean Code (€34.95), then apply <code>SAVE10</code>.</p>
+        <div class="expected"><p><strong>Expected:</strong> the cart count is <code>3</code>, subtotal <code>€159.80</code>, discount <code>-€15.98</code>, total <code>€143.82</code>. The sold-out USB-C Hub can't be added, and an unknown code like <code>FREEBIE</code> is rejected with a message.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('calculates totals with a promo code', async ({ page }) => {
+  // Each test gets a fresh browser context, so the saved cart starts empty.
+  await page.goto('/shop.html');
+
+  await page.getByTestId('add-to-cart-1').click();
+  await page.getByTestId('add-to-cart-5').click();
+  await page.getByTestId('add-to-cart-5').click();
+
+  await expect(page.getByTestId('add-to-cart-4')).toBeDisabled();
+  await expect(page.getByTestId('add-to-cart-4')).toHaveText('Sold out');
+
+  await page.getByTestId('promo').fill('FREEBIE');
+  await page.getByTestId('apply-promo').click();
+  await expect(page.getByTestId('promo-message')).toHaveText('"FREEBIE" is not a valid code.');
+
+  await page.getByTestId('promo').fill('save10'); // codes are case-insensitive
+  await page.getByTestId('apply-promo').click();
+
+  await expect(page.getByTestId('cart-count')).toHaveText('3');
+  await expect(page.getByTestId('subtotal')).toHaveText('€159.80');
+  await expect(page.getByTestId('discount')).toHaveText('-€15.98');
+  await expect(page.getByTestId('total')).toHaveText('€143.82');
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-stock">
+        <div class="exercise-head"><h3>3. Stock limits and quantities</h3><span class="tag medium">Intermediate</span></div>
+        <p>Only 2 monitors are in stock. Try to buy 5, then remove them all by setting the quantity to 0.</p>
+        <div class="expected"><p><strong>Expected:</strong> typing 5 in the monitor's quantity box snaps back to <code>2</code> and <em>Add to cart</em> becomes disabled; a quantity of 0 removes the line and the cart says <code>Your cart is empty.</code></p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('respects stock limits', async ({ page }) => {
+  await page.goto('/shop.html');
+  await page.getByTestId('add-to-cart-3').click();
+
+  const qty = page.getByTestId('qty-3');
+  await qty.fill('5');
+  // The cart updates on "change", which fires when the field loses focus.
+  await qty.blur();
+  await expect(qty).toHaveValue('2');
+  await expect(page.getByTestId('add-to-cart-3')).toBeDisabled();
+
+  await qty.fill('0');
+  await qty.blur();
+  await expect(page.getByTestId('cart-line-3')).toHaveCount(0);
+  await expect(page.getByTestId('cart-empty')).toBeVisible();
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-checkout">
+        <div class="exercise-head"><h3>4. Complete a purchase</h3><span class="tag medium">Intermediate</span></div>
+        <p>Buy a QA Hoodie with express shipping, from the catalogue all the way to the confirmation.</p>
+        <div class="expected"><p><strong>Expected:</strong> checkout shows <code>€58.99</code> (€49.00 + €9.99 express); after placing the order you see an order number like <code>ORD-12345678</code> and the same amount charged; continuing shopping shows an empty cart, even after a reload.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect, type Page } from '@playwright/test';
+
+// Helpers keep long end-to-end tests readable and reusable.
+async function fillShipping(page: Page) {
+  await page.getByTestId('ship-name').fill('Ana Silva');
+  await page.getByTestId('ship-address').fill('Rua das Flores 1');
+  await page.getByTestId('ship-city').fill('Lisboa');
+  await page.getByTestId('ship-zip').fill('1000-001');
+}
+
+test('buys a hoodie with express shipping', async ({ page }) => {
+  await page.goto('/shop.html');
+  await page.getByTestId('add-to-cart-7').click();
+  await page.getByTestId('checkout').click();
+
+  await expect(page.getByTestId('view-checkout')).toBeVisible();
+  await fillShipping(page);
+  await page.getByTestId('ship-express').check();
+  await expect(page.getByTestId('checkout-total')).toHaveText('€58.99');
+
+  await page.getByTestId('place-order').click();
+  await expect(page.getByTestId('view-done')).toBeVisible();
+  await expect(page.getByTestId('order-number')).toHaveText(/^ORD-\d{8}$/);
+  await expect(page.getByTestId('order-amount')).toHaveText('€58.99');
+
+  await page.getByTestId('continue-shopping').click();
+  await page.reload();
+  await expect(page.getByTestId('cart-count')).toHaveText('0');
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-checkout-validation">
+        <div class="exercise-head"><h3>5. Checkout validation</h3><span class="tag easy">Beginner</span></div>
+        <p>Try to place an order with missing details, then with a badly formatted postal code.</p>
+        <div class="expected"><p><strong>Expected:</strong> an empty form shows <code>Please fill in all shipping fields.</code>; postal code <code>1000</code> shows <code>Postal code must look like 1000-001.</code> and that field is marked invalid. No order is placed.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('validates the shipping form', async ({ page }) => {
+  // Checkout needs something in the cart, so add a product first.
+  await page.goto('/shop.html');
+  await page.getByTestId('add-to-cart-2').click();
+  await page.getByTestId('checkout').click();
+
+  // Submitting an empty form: the first rule to fail is "all fields required".
+  const error = page.getByTestId('checkout-error');
+  await page.getByTestId('place-order').click();
+  await expect(error).toHaveText('Please fill in all shipping fields.');
+
+  // Fill everything correctly except the postal code to isolate that one rule.
+  await page.getByTestId('ship-name').fill('Ana Silva');
+  await page.getByTestId('ship-address').fill('Rua das Flores 1');
+  await page.getByTestId('ship-city').fill('Lisboa');
+  await page.getByTestId('ship-zip').fill('1000');
+  await page.getByTestId('place-order').click();
+
+  await expect(error).toHaveText('Postal code must look like 1000-001.');
+  await expect(page.getByTestId('ship-zip')).toHaveAttribute('aria-invalid', 'true');
+  // Negative check: the confirmation screen must never appear.
+  await expect(page.getByTestId('view-done')).toBeHidden();
+});
+        </template></details>
+      </article>
+    </div>
   </main>
   <footer id="site-footer"></footer>
   <script src="assets/app.js"></script>

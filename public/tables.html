@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tables Practice</title>
+  <title>Tables | Mario's Test Automation Playground</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
 </head>
@@ -49,6 +50,125 @@
       <span id="page-info" data-testid="page-info"></span>
       <button id="next" class="secondary small" data-testid="next-page">Next</button>
       <span class="hint" id="row-count" data-testid="row-count"></span>
+    </div>
+
+    <h2 class="exercises-intro">Exercises</h2>
+    <div class="exercises" data-testid="exercises">
+      <article class="card" data-testid="exercise-sort">
+        <div class="exercise-head"><h3>1. Sort by salary</h3><span class="tag medium">Intermediate</span></div>
+        <p>Show all rows, sort by salary from highest to lowest, and prove the order is correct using the real cell values.</p>
+        <div class="expected"><p><strong>Expected:</strong> after two clicks the salary header has <code>aria-sort="descending"</code>, and the 47 salaries read from the table are in descending order.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('sorts salaries from highest to lowest', async ({ page }) => {
+  await page.goto('/tables.html');
+  // Show every row on one page so we can read them all at once.
+  await page.getByTestId('page-size').selectOption('50');
+
+  await page.getByTestId('sort-salary').click(); // ascending
+  await page.getByTestId('sort-salary').click(); // descending
+  await expect(page.locator('th[data-key="salary"]')).toHaveAttribute('aria-sort', 'descending');
+
+  // allTextContents() returns every matching cell's text in DOM order.
+  const salaries = (await page.locator('td[data-col="salary"]').allTextContents())
+    .map((text) => Number(text.replace(/,/g, '')));
+
+  expect(salaries).toHaveLength(47);
+  // Compare with a copy we sort ourselves: never trust the app to check the app.
+  expect(salaries).toEqual([...salaries].sort((a, b) => b - a));
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-filter">
+        <div class="exercise-head"><h3>2. Filter and check the total</h3><span class="tag medium">Intermediate</span></div>
+        <p>Choose the Engineering department and verify the footer total adds up.</p>
+        <div class="expected"><p><strong>Expected:</strong> the counter shows <code>10 of 47 rows</code>, every visible row is in Engineering, and the <em>Total salary</em> equals the sum of the visible salaries.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+// Salaries are displayed as "54,000": strip the separators before doing maths.
+const toNumber = (text: string) => Number(text.replace(/,/g, ''));
+
+test('filters by department and totals the salaries', async ({ page }) => {
+  await page.goto('/tables.html');
+  // Show all rows on one page, so the visible cells are the whole filtered set.
+  await page.getByTestId('page-size').selectOption('50');
+  await page.getByTestId('dept-filter').selectOption('Engineering');
+
+  // toHaveText() waits for the table to re-render after the filter change.
+  await expect(page.getByTestId('row-count')).toHaveText('10 of 47 rows');
+
+  // A Set of all departments must contain exactly one value.
+  const departments = await page.locator('td[data-col="department"]').allTextContents();
+  expect(new Set(departments)).toEqual(new Set(['Engineering']));
+
+  // Recalculate the total ourselves and compare it with the footer.
+  const salaries = (await page.locator('td[data-col="salary"]').allTextContents()).map(toNumber);
+  const total = salaries.reduce((sum, s) => sum + s, 0);
+  expect(toNumber(await page.getByTestId('salary-total').innerText())).toBe(total);
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-paging">
+        <div class="exercise-head"><h3>3. Walk every page</h3><span class="tag medium">Intermediate</span></div>
+        <p>With the default 10 rows per page, click <em>Next</em> until you can't, collecting every employee ID on the way.</p>
+        <div class="expected"><p><strong>Expected:</strong> you finish on <code>Page 5 of 5</code> with the Next button disabled, having collected 47 IDs and no duplicates.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('collects every id across all pages', async ({ page }) => {
+  await page.goto('/tables.html');
+  const next = page.getByTestId('next-page');
+  const ids: string[] = [];
+
+  while (true) {
+    ids.push(...await page.locator('td[data-col="id"]').allTextContents());
+    // isDisabled() reads the state right now (no waiting),
+    // which is what we want for a loop condition.
+    if (await next.isDisabled()) break;
+    await next.click();
+  }
+
+  await expect(page.getByTestId('page-info')).toHaveText('Page 5 of 5');
+  expect(ids).toHaveLength(47);
+  expect(new Set(ids).size).toBe(47);
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-edit-delete">
+        <div class="exercise-head"><h3>4. Edit a salary, then delete a row</h3><span class="tag medium">Intermediate</span></div>
+        <p>Change employee 1's salary to 99,999. Then delete employee 3, which asks for confirmation in a browser dialog.</p>
+        <div class="expected"><p><strong>Expected:</strong> row 1 shows <code>99,999</code>; the dialog asks to delete the employee by name; after accepting, row 3 is gone and the counter says <code>46 of 46 rows</code>.</p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('edits a salary and deletes a row', async ({ page }) => {
+  await page.goto('/tables.html');
+
+  await page.getByTestId('edit-1').click();
+  // The input only exists in edit mode; Playwright waits for it to appear.
+  await page.getByTestId('salary-input-1').fill('99999');
+  await page.getByTestId('save-1').click();
+  await expect(page.getByTestId('row-1').locator('td[data-col="salary"]')).toHaveText('99,999');
+
+  // Dialogs must be handled BEFORE the click that opens them.
+  // Without a handler, Playwright dismisses dialogs (= Cancel).
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    expect(dialog.message()).toMatch(/^Delete .+\?$/);
+    await dialog.accept();
+  });
+  await page.getByTestId('delete-3').click();
+
+  await expect(page.getByTestId('row-3')).toHaveCount(0);
+  await expect(page.getByTestId('row-count')).toHaveText('46 of 46 rows');
+});
+        </template></details>
+      </article>
     </div>
   </main>
   <footer id="site-footer"></footer>

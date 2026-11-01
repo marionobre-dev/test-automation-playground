@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Forms Practice</title>
+  <title>Forms | Mario's Test Automation Playground</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/theme.js"></script>
 </head>
@@ -117,6 +118,162 @@
         <div id="form-status" class="alert hidden" role="status" data-testid="form-status"></div>
         <pre id="form-result" data-testid="form-result">Nothing submitted yet.</pre>
       </div>
+    </div>
+
+    <h2 class="exercises-intro">Exercises</h2>
+    <div class="exercises" data-testid="exercises">
+      <article class="card" data-testid="exercise-required">
+        <div class="exercise-head"><h3>1. Required fields</h3><span class="tag easy">Beginner</span></div>
+        <p>Submit the form without filling anything in.</p>
+        <div class="expected">
+          <p><strong>Expected:</strong> the status says <code>Please fix the highlighted fields.</code>, each required field shows its own message (full name, email, password, country, experience, terms), invalid fields get <code>aria-invalid="true"</code>, and the cursor jumps to <em>Full name</em>.</p>
+        </div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('shows every required-field error', async ({ page }) => {
+  await page.goto('/forms.html');
+  await page.getByTestId('submit').click();
+
+  await expect(page.getByTestId('form-status')).toHaveText('Please fix the highlighted fields.');
+
+  // Map each error element to its message and check them all in one loop.
+  const errors = {
+    'full-name-error': 'Full name must be at least 2 characters.',
+    'email-error': 'Enter a valid email address.',
+    'password-error': 'Password needs 8+ characters and a number.',
+    'country-error': 'Please choose a country.',
+    'experience-error': 'Choose your experience level.',
+    'terms-error': 'You must accept the terms.',
+  };
+  for (const [testId, message] of Object.entries(errors)) {
+    await expect(page.getByTestId(testId)).toHaveText(message);
+  }
+
+  // Accessibility state is worth asserting too.
+  await expect(page.getByTestId('full-name')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByTestId('full-name')).toBeFocused();
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-all-fields">
+        <div class="exercise-head"><h3>2. Fill in every field type</h3><span class="tag easy">Beginner</span></div>
+        <p>Fill every input (text, select, multi-select, radio, checkboxes, date, slider, colour, file and textarea) and submit.</p>
+        <div class="expected">
+          <p><strong>Expected:</strong> the status thanks you by name, and the JSON under <em>Result</em> contains exactly the values you entered, e.g. <code>"country": "PT"</code>, <code>"languages": ["python", "javascript"]</code> and <code>"satisfaction": 8</code>.</p>
+        </div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('submits every field type', async ({ page }) => {
+  await page.goto('/forms.html');
+
+  await page.getByTestId('full-name').fill('Ana Silva');
+  await page.getByTestId('email').fill('ana@example.com');
+  await page.getByTestId('phone').fill('+351 912 345 678');
+  await page.getByTestId('password').fill('Secret123');
+  await page.getByTestId('age').fill('30');
+  // Date inputs always take ISO format (yyyy-mm-dd), whatever the display locale.
+  await page.getByTestId('birth-date').fill('1995-05-17');
+
+  // selectOption() accepts the option value, or an array for multi-selects.
+  await page.getByTestId('country').selectOption('PT');
+  await page.getByTestId('languages').selectOption(['python', 'javascript']);
+
+  await page.getByTestId('exp-mid').check();
+  await page.getByTestId('tool-playwright').check();
+  await page.getByTestId('tool-cypress').check();
+
+  // fill() also works for range and colour inputs.
+  await page.getByTestId('satisfaction').fill('8');
+  await page.getByTestId('fav-color').fill('#ff6600');
+
+  // Upload a file from memory: no fixture file on disk needed.
+  await page.getByTestId('avatar').setInputFiles({
+    name: 'avatar.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('fake image bytes'),
+  });
+
+  await page.getByTestId('bio').fill('I automate all the things.');
+  await page.getByTestId('terms').check();
+  await page.getByTestId('submit').click();
+
+  await expect(page.getByTestId('form-status')).toContainText('Thanks Ana Silva');
+
+  // Parse the JSON result and compare it as an object, not as text.
+  const result = JSON.parse(await page.getByTestId('form-result').innerText());
+  expect(result).toMatchObject({
+    fullName: 'Ana Silva',
+    country: 'PT',
+    languages: ['python', 'javascript'],
+    experience: 'mid',
+    tools: ['playwright', 'cypress'],
+    satisfaction: 8,
+    favColor: '#ff6600',
+    avatar: 'avatar.png',
+  });
+});
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-boundaries">
+        <div class="exercise-head"><h3>3. Validation boundaries</h3><span class="tag medium">Intermediate</span></div>
+        <p>Find the exact edge of each rule: age must be 18–120, the phone 9–15 digits, the password 8+ characters with a number.</p>
+        <div class="expected">
+          <p><strong>Expected:</strong> age <code>17</code> shows <code>Age must be between 18 and 120.</code> but <code>18</code> doesn't; <code>12345</code> is rejected as a phone; <code>abcdefgh</code> is rejected as a password but <code>abcdefg1</code> isn't.</p>
+        </div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+// Each row: field, value, the error element, and the message ('' = valid).
+const cases = [
+  { field: 'age', value: '17', error: 'age-error', message: 'Age must be between 18 and 120.' },
+  { field: 'age', value: '18', error: 'age-error', message: '' },
+  { field: 'age', value: '121', error: 'age-error', message: 'Age must be between 18 and 120.' },
+  { field: 'phone', value: '12345', error: 'phone-error', message: 'Phone must be 9-15 digits.' },
+  { field: 'phone', value: '912345678', error: 'phone-error', message: '' },
+  { field: 'password', value: 'abcdefgh', error: 'password-error', message: 'Password needs 8+ characters and a number.' },
+  { field: 'password', value: 'abcdefg1', error: 'password-error', message: '' },
+];
+
+for (const c of cases) {
+  test(`${c.field} = "${c.value}" is ${c.message ? 'rejected' : 'accepted'}`, async ({ page }) => {
+    await page.goto('/forms.html');
+    await page.getByTestId(c.field).fill(c.value);
+    // Validation runs on submit; other fields being empty doesn't matter here
+    // because we only look at this field's own error.
+    await page.getByTestId('submit').click();
+    await expect(page.getByTestId(c.error)).toHaveText(c.message);
+  });
+}
+        </template></details>
+      </article>
+
+      <article class="card" data-testid="exercise-upload">
+        <div class="exercise-head"><h3>4. File too large</h3><span class="tag easy">Beginner</span></div>
+        <p>Upload an avatar just over 1 MB.</p>
+        <div class="expected"><p><strong>Expected:</strong> the file name and size appear under the input straight away, and submitting shows <code>File is larger than 1 MB.</code></p></div>
+        <details class="solution"><summary>Show me how</summary><template>
+import { test, expect } from '@playwright/test';
+
+test('rejects an avatar over 1 MB', async ({ page }) => {
+  await page.goto('/forms.html');
+
+  // Buffer.alloc() creates a file of exactly the size we need.
+  await page.getByTestId('avatar').setInputFiles({
+    name: 'huge.png',
+    mimeType: 'image/png',
+    buffer: Buffer.alloc(1024 * 1024 + 1),
+  });
+  await expect(page.getByTestId('avatar-info')).toHaveText('huge.png (1024 KB)');
+
+  await page.getByTestId('submit').click();
+  await expect(page.getByTestId('avatar-error')).toHaveText('File is larger than 1 MB.');
+});
+        </template></details>
+      </article>
     </div>
   </main>
   <footer id="site-footer"></footer>
